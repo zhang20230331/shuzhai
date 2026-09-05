@@ -17,7 +17,7 @@
 <!-- 书架 -->
 <div id="shelf" class="page">
   <header class="topbar">
-    <h1>书斋</h1>
+    <h1>书斋 <span class="ver">v1.1</span></h1>
     <div class="topbar-actions">
       <button id="btnStore" class="ghost-btn">名著书城</button>
       <button id="btnImportUrl" class="ghost-btn">链接导入</button>
@@ -143,6 +143,15 @@
   </div>
 
   <div id="toast" class="hidden"></div>
+
+  <!-- 打开失败诊断面板：老内核/异常时显示具体原因，不再靠 2 秒提示 -->
+  <div id="errPanel" class="hidden">
+    <div class="err-card">
+      <div class="err-title">打开失败</div>
+      <div class="err-msg" id="errMsg"></div>
+      <button id="errClose" class="primary-btn">返回书架</button>
+    </div>
+  </div>
 <audio id="audio" preload="auto"></audio>
 <script src="local.js"></script>
 <script src="app.js"></script>

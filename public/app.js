@@ -175,6 +175,7 @@ document.addEventListener("drop", (e) => {
 /* ---------------- 分页核心 ---------------- */
 function layout() {
   const pw = viewport.clientWidth;
+  if (!pw) return;
   track.style.padding = `0 ${PAD}px`;
   track.style.columnWidth = (pw - PAD * 2) + "px";
   track.style.columnGap = (PAD * 2) + "px";
@@ -320,8 +321,22 @@ async function openBook(id, jump) {
     $("#shelf").classList.add("hidden");
     $("#reader").classList.remove("hidden");
     await gotoChapter(ch, { restorePara: para });
-  } catch (e) { toast(e.message); }
+  } catch (e) { showBookError(e.message); }
 }
+
+/* 打开失败诊断面板：老内核或异常时给出具体原因，避免 2 秒提示被错过 */
+function showBookError(msg) {
+  $("#errMsg").textContent = String(msg || "未知错误");
+  $("#errPanel").classList.remove("hidden");
+}
+$("#errClose").addEventListener("click", () => {
+  $("#errPanel").classList.add("hidden");
+  backToShelf();
+});
+window.addEventListener("error", (e) => { if (S.book) showBookError(e.message); });
+window.addEventListener("unhandledrejection", (e) => {
+  if (S.book) showBookError((e.reason && e.reason.message) || String(e.reason));
+});
 
 function backToShelf() {
   stopPlay();
