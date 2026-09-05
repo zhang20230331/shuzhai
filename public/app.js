@@ -555,7 +555,16 @@ async function playFrom(ch, p) {
   } catch (e) {
     if (token !== S.playToken) return;
     if (e.name === "NotAllowedError") { setPlayingUI(false); toast("点击播放按钮开始听书"); return; }
-    if (e.name === "AbortError") { setTimeout(() => { if (token === S.playToken) playFrom(ch, p); }, 400); return; }
+    if (e.name === "AbortError") {
+      // play 被打断（典型：用户暂停/关闭）。若用户已停止就安静退出，绝不自动复活；
+      // 其它情况的打断只轻量重试 play() 本身，不重走整条播放链。
+      if (!S.playing) return;
+      setTimeout(() => {
+        if (token !== S.playToken || !S.playing) return;
+        audio.play().then(() => updateSegHighlight(S.cur.p, audio.currentTime / (audio.duration || 1))).catch(() => {});
+      }, 400);
+      return;
+    }
     toast("合成失败，2 秒后跳到下一段");
     setTimeout(() => { if (token === S.playToken) nextPara(); }, 2000);
   }
@@ -613,15 +622,24 @@ function prevPara() {
 }
 
 function stopPlay() {
-  S.playToken++;
+  S.playToken++; // 作废所有 pending 的播放链（含 AbortError 重试）
   setPlayingUI(false);
   audio.pause();
   audio.removeAttribute("src");
+  try { audio.load(); } catch {}
 }
 
 $("#btnPlayToggle").addEventListener("click", () => {
-  if (S.playing) { setPlayingUI(false); audio.pause(); }
-  else playFrom(S.cur.ch, S.cur.p);
+  if (S.playing) {
+    S.playToken++; // 暂停 = 作废未完成的 play 请求，防止其失败重试把播放复活
+    setPlayingUI(false);
+    audio.pause();
+  } else playFrom(S.cur.ch, S.cur.p);
+});
+$("#btnClosePlayer").addEventListener("click", () => {
+  stopPlay();
+  $("#playerBar").classList.add("hidden");
+  toast("已关闭听书");
 });
 $("#btnNextPara").addEventListener("click", () => nextPara());
 $("#btnPrevPara").addEventListener("click", () => prevPara());
