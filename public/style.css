@@ -192,9 +192,9 @@ button { font-family: inherit; cursor: pointer; }
 /* ---------- 弹层 ---------- */
 .mask { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.4); }
 .drawer {
-  position: fixed; top: 0; bottom: 0; right: 0; z-index: 51; width: min(320px, 84vw);
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 51; width: min(320px, 84vw);
   background: var(--panel); display: flex; flex-direction: column;
-  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
 }
 .drawer-head {
   padding: calc(14px + var(--safe-top)) 16px 14px; font-weight: 600;

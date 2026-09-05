@@ -8,45 +8,56 @@ const assert = require("node:assert");
 const { createLocalAdapter } = require("../public/local.js");
 
 /* 极简 IndexedDB 形状模拟：只实现适配层用到的子集。
-   语义与真机一致：请求结果异步填充，事务在请求完成后 complete。 */
+   语义与真机一致：请求结果异步填充，事务在全部请求完成后 complete。
+   用微任务计数保证「先请求成功、后事务完成」的确定性顺序（定时器在负载下会合并失序）。 */
 function makeIndexedDB() {
-  const dbs = new Map();
-
   class Request {
-    constructor() { this.result = undefined; this.onsuccess = null; this.onerror = null; }
+    constructor(tx) { this.tx = tx; this.result = undefined; this.onsuccess = null; this.onerror = null; }
     _finish(value) {
-      setTimeout(() => { this.result = value; if (this.onsuccess) this.onsuccess(); }, 0);
+      queueMicrotask(() => {
+        this.result = value;
+        if (this.onsuccess) this.onsuccess();
+        this.tx._requestDone();
+      });
     }
   }
 
   class Store {
-    constructor(records) { this.records = records; }
+    constructor(records, tx) { this.records = records; this.tx = tx; }
     get(key) {
-      const req = new Request();
+      const req = this.tx.track(new Request(this.tx));
       req._finish(this.records.has(key) ? structuredClone(this.records.get(key)) : undefined);
       return req;
     }
     getAll() {
-      const req = new Request();
+      const req = this.tx.track(new Request(this.tx));
       req._finish([...this.records.values()].map((v) => structuredClone(v)));
       return req;
     }
     put(value, key) {
-      const req = new Request();
+      const req = this.tx.track(new Request(this.tx));
       const k = key !== undefined ? key : value.id;
       this.records.set(k, structuredClone(value));
       req._finish(k);
       return req;
     }
     delete(key) {
-      const req = new Request();
+      const req = this.tx.track(new Request(this.tx));
       req._finish(this.records.delete(key));
       return req;
     }
   }
 
   class Transaction {
-    constructor(store) { this.store = new Store(store); }
+    constructor(store) { this.store = new Store(store, this); this.pending = 0; this.completeQueued = false; }
+    track(req) { this.pending++; return req; }
+    _requestDone() {
+      this.pending--;
+      if (this.pending === 0 && !this.completeQueued) {
+        this.completeQueued = true;
+        queueMicrotask(() => { if (this.oncomplete) this.oncomplete(); });
+      }
+    }
     objectStore() { return this.store; }
   }
 
@@ -61,24 +72,19 @@ function makeIndexedDB() {
       return { contains: (n) => self.stores.has(n) };
     }
     transaction(name) {
-      const t = new Transaction(this.stores.get(name));
-      // Node 的 setTimeout(0) 会被钳到 1ms，用 2ms 保证 complete 晚于请求完成，
-      // 与真实 IndexedDB「先请求成功、后事务完成」的语义一致。
-      setTimeout(() => { if (t.oncomplete) t.oncomplete(); }, 2);
-      return t;
+      return new Transaction(this.stores.get(name));
     }
     close() {}
   }
 
   return {
     open(name) {
-      const req = new Request();
+      const req = new Request({ pending: 0, _requestDone() {} });
       setTimeout(() => {
         if (db.stores.size === 0) { db.createObjectStore("b"); db.createObjectStore("m"); }
         if (req.onsuccess) req.onsuccess();
       }, 0);
       const db = new DB(name);
-      dbs.set(name, db);
       req.result = db;
       return req;
     },

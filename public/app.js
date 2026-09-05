@@ -245,6 +245,7 @@ async function gotoChapter(n, opts = {}) {
 }
 
 function prefetchAdj(n) {
+  if (!S.book) return;
   [n - 1, n + 1].forEach((i) => {
     if (i >= 0 && i < S.book.chapters.length && !S.chapterCache.has(i)) {
       api(`/api/books/${S.book.id}/chapter/${i}`).then((d) => {
@@ -366,6 +367,7 @@ async function loadChapter(n, restorePara = null) {
 }
 
 function renderToc() {
+  if (!S.book) return;
   const list = $("#tocList");
   list.innerHTML = "";
   $("#tocCount").textContent = `共 ${S.book.chapters.length} 章`;
@@ -633,6 +635,7 @@ function stopPlay() {
   audio.pause();
   audio.removeAttribute("src");
   try { audio.load(); } catch {}
+  track.querySelectorAll(".seg.on").forEach((el) => el.classList.remove("on")); // 关闭听书后取消正文高亮
 }
 
 $("#btnPlayToggle").addEventListener("click", () => {

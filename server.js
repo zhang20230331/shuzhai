@@ -32,7 +32,35 @@ const VOICES = [
 ];
 
 // ---------- 数据读写 ----------
-const bookFile = (id) => path.join(BOOKS_DIR, `${id}.json`);
+// 书籍 ID 只允许字母数字下划线连字符；逐字符剔除（而非拒绝）外部输入
+const cleanId = (id) => String(id).replace(/[^\w-]/g, "");
+
+// 统一的受限目录解析：resolve 后强制校验目标仍位于根目录内
+function resolveInside(root, name) {
+  const target = path.resolve(root, name);
+  if (target !== root && !target.startsWith(root + path.sep)) throw new Error("非法路径");
+  return target;
+}
+
+// 书籍文件一律通过「目录枚举 → 精确匹配」解析：请求提供的 id 仅作查表键
+let bookIndex = null;
+function bookEntry(id, ext) {
+  if (!bookIndex) {
+    bookIndex = new Set(fs.readdirSync(BOOKS_DIR));
+  }
+  const f = cleanId(id) + ext;
+  return bookIndex.has(f) ? f : null;
+}
+function bookFile(id) {
+  const f = bookEntry(id, ".json");
+  if (!f) throw new Error("书籍不存在");
+  return resolveInside(BOOKS_DIR, f);
+}
+const bookTxtFile = (id) => {
+  const f = bookEntry(id, ".txt");
+  if (!f) throw new Error("书籍不存在");
+  return resolveInside(BOOKS_DIR, f);
+};
 
 function loadProgress() {
   try { return JSON.parse(fs.readFileSync(PROGRESS_FILE, "utf8")); } catch { return {}; }
@@ -68,8 +96,10 @@ function importBook(name, text) {
   if (paras.length === 0) throw new Error("没有可读内容");
   const id = Date.now().toString(36) + crypto.randomBytes(2).toString("hex");
   const book = { id, name, addedAt: Date.now(), chapters: chapterIndex, paras };
-  fs.writeFileSync(bookFile(id), JSON.stringify(book));
-  fs.writeFileSync(path.join(BOOKS_DIR, `${id}.txt`), text); // 保留原件，便于日后重新解析
+  // id 为服务端自生成值，仅此一处允许直接拼接；随后刷新目录索引
+  fs.writeFileSync(resolveInside(BOOKS_DIR, `${cleanId(id)}.json`), JSON.stringify(book));
+  fs.writeFileSync(resolveInside(BOOKS_DIR, `${cleanId(id)}.txt`), text); // 保留原件，便于日后重新解析
+  bookIndex = null;
   return { id, name, chapterCount: chapterIndex.length, paraCount: paras.length, progress: null };
 }
 
@@ -88,6 +118,7 @@ function readBody(req, limit = MAX_UPLOAD) {
 }
 
 // ---------- 静态文件 ----------
+let staticFiles = null; // public 目录文件清单（服务端枚举，请求路径仅作查表键）
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -101,16 +132,33 @@ const MIME = {
 function serveStatic(req, res, pathname) {
   let rel = pathname === "/" ? "index.html" : pathname.slice(1);
   try { rel = decodeURIComponent(rel); } catch {}
-  const file = path.join(PUBLIC_DIR, rel);
-  if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+  // 请求路径仅作查表键：与启动时枚举的 public 文件清单精确匹配
+  rel = rel.replace(/\\/g, "/").replace(/^\/+/, "").replace(/(^|\/)\.\.(?=\/|$)/g, "");
+  if (!staticFiles) {
+    staticFiles = new Set();
+    const walk = (dir, prefix) => {
+      for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (f.isDirectory()) walk(dir + "/" + f.name, prefix + f.name + "/");
+        else staticFiles.add(prefix + f.name);
+      }
+    };
+    walk(PUBLIC_DIR, "");
+  }
+  const hit = staticFiles.has(rel) ? rel : staticFiles.has(rel + "/index.html") ? rel + "/index.html" : null;
+  if (!hit) {
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    return res.end("404");
+  }
+  const target = path.resolve(PUBLIC_DIR, hit);
+  if (target !== PUBLIC_DIR && !target.startsWith(PUBLIC_DIR + path.sep)) {
     res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
     return res.end("404");
   }
   res.writeHead(200, {
-    "Content-Type": MIME[path.extname(file)] || "application/octet-stream",
+    "Content-Type": MIME[path.extname(target)] || "application/octet-stream",
     "Cache-Control": "no-cache",
   });
-  res.end(fs.readFileSync(file));
+  res.end(fs.readFileSync(target));
 }
 
 function json(res, code, obj) {
@@ -174,16 +222,19 @@ async function route(req, res) {
   const bookMatch = p.match(/^\/api\/books\/([\w-]+)(\/chapter\/(\d+))?$/);
   if (bookMatch) {
     const id = bookMatch[1];
-    const file = bookFile(id);
-    if (!fs.existsSync(file)) return json(res, 404, { error: "书籍不存在" });
+    let file = null;
+    try { file = bookFile(id); } catch {}
+    if (!file || !fs.existsSync(file)) return json(res, 404, { error: "书籍不存在" });
     const book = JSON.parse(fs.readFileSync(file, "utf8"));
 
     if (m === "DELETE" && !bookMatch[2]) {
       fs.unlinkSync(file);
-      const txt = path.join(BOOKS_DIR, `${id}.txt`);
-      if (fs.existsSync(txt)) fs.unlinkSync(txt);
+      try {
+        const txt = bookTxtFile(id);
+        if (fs.existsSync(txt)) fs.unlinkSync(txt);
+      } catch {}
       const progress = loadProgress();
-      delete progress[id];
+      delete progress[cleanId(id)];
       saveProgress(progress);
       return json(res, 200, { ok: true });
     }
@@ -203,7 +254,7 @@ async function route(req, res) {
   if (progMatch && m === "POST") {
     const body = JSON.parse((await readBody(req, 10240)).toString("utf8"));
     const progress = loadProgress();
-    progress[progMatch[1]] = { chapter: body.chapter | 0, para: body.para | 0, updatedAt: Date.now() };
+    progress[cleanId(progMatch[1])] = { chapter: body.chapter | 0, para: body.para | 0, updatedAt: Date.now() };
     saveProgress(progress);
     return json(res, 200, { ok: true });
   }
