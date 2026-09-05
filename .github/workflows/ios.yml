@@ -36,8 +36,14 @@ jobs:
       - name: 插件依赖改用远程 SPM
         run: |
           cd ios/App/CapApp-SPM
-          sed -i '' 's|path: "../../../node_modules/@capacitor-community/text-to-speech"|url: "https://github.com/capacitor-community/text-to-speech.git", branch: "main"|' Package.swift
-          grep -n "package(" Package.swift
+          grep -n "node_modules" Package.swift || true
+          sed -i '' 's|path: "[^"]*node_modules/@capacitor-community/text-to-speech"|url: "https://github.com/capacitor-community/text-to-speech.git", branch: "main"|' Package.swift
+          grep -n "text-to-speech" Package.swift
+
+      - name: 隔离验证 SPM 图
+        run: |
+          cd ios/App/CapApp-SPM
+          swift package resolve 2>&1 | tee ../../diag_swift.log || true
 
       - name: 解析 SPM 依赖
         run: |
@@ -59,6 +65,7 @@ jobs:
           xcodebuild -project App.xcodeproj -target App \
             -configuration Release -sdk iphoneos \
             -clonedSourcePackagesDirPath "$GITHUB_WORKSPACE/spm" \
+            -disableAutomaticPackageResolution \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             -derivedDataPath "$GITHUB_WORKSPACE/build" 2>&1 | tee ../../xcodebuild.log
           mkdir -p Payload
