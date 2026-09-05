@@ -45,6 +45,13 @@ jobs:
           cd ios/App
           xcodebuild -project App.xcodeproj -resolvePackageDependencies 2>&1 | tee ../../resolve.log
 
+      - name: 分层诊断
+        run: |
+          plutil -lint ios/App/App.xcodeproj/project.pbxproj || true
+          xcodebuild -list -project ios/App/App.xcodeproj 2>&1 | tee diag_list.log || true
+          cd ios/App/CapApp-SPM
+          swift package resolve 2>&1 | tee ../../diag_swift.log | tail -5 || true
+
       - name: 编译未签名 IPA
         run: |
           set -o pipefail
@@ -72,10 +79,13 @@ jobs:
             echo "=== xcodebuild.log 全量 ==="
             cat xcodebuild.log 2>/dev/null | tr '\n' '|' | fold -w 640
             echo ""
+            echo "=== diag_list.log 全量 ==="
+            cat diag_list.log 2>/dev/null | tr '\n' '|' | fold -w 640
+            echo ""
+            echo "=== diag_swift.log 全量 ==="
+            cat diag_swift.log 2>/dev/null | tr '\n' '|' | fold -w 640
+            echo ""
             echo "=== resolve.log 尾部 ==="
             tail -12 resolve.log 2>/dev/null | tr '\n' '|' | fold -w 640
             echo ""
-            echo "=== xcodebuild -version 独立测试 ==="
-            xcodebuild -version 2>&1 | head -3
-            echo "=== exit: $? ==="
           } | head -14 | sed 's/^/::error::/' || true
