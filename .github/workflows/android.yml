@@ -33,7 +33,7 @@ jobs:
           cd android
           chmod +x gradlew
           echo "sdk.dir=${ANDROID_HOME:-$ANDROID_SDK_ROOT}" > local.properties
-          ./gradlew assembleDebug --no-daemon 2>&1 | tee ../gradle.log
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../gradle.log
 
       - name: 上传 APK
         uses: actions/upload-artifact@v4
@@ -45,18 +45,11 @@ jobs:
       - name: 失败时公开日志
         if: failure()
         run: |
-          S="$GITHUB_STEP_SUMMARY"
           {
-            echo "## 调试信息"
-            echo "- node $(node -v) / npm $(npm -v) / $(java -version 2>&1 | head -1)"
-            echo "- ANDROID_HOME=$ANDROID_HOME ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-            echo "- 工作目录内容: $(ls android 2>/dev/null | tr '\n' ' ')"
-          } >> "$S"
-          for f in npm.log sync.log android/gradle.log; do
-            if [ -f "$f" ]; then
-              echo "### $f 尾部100行" >> "$S"
-              echo '```' >> "$S"
-              tail -100 "$f" >> "$S"
-              echo '```' >> "$S"
-            fi
-          done
+            for f in android/gradle.log sync.log npm.log; do
+              [ -f "$f" ] || continue
+              echo "===== $f ====="
+              grep -iE "FAILURE|What went wrong|error:|Error:|Exception|Exit code" "$f" | tail -6
+              tail -18 "$f"
+            done
+          } 2>/dev/null | fold -w 640 | head -10 | sed 's/^/::error::/' || true

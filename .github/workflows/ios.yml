@@ -43,17 +43,11 @@ jobs:
       - name: 失败时公开日志
         if: failure()
         run: |
-          S="$GITHUB_STEP_SUMMARY"
           {
-            echo "## 调试信息"
-            echo "- node $(node -v) / npm $(npm -v) / xcodebuild $(xcodebuild -version 2>&1 | head -1)"
-            echo "- CocoaPods $(pod --version 2>&1)"
-          } >> "$S"
-          for f in npm.log sync.log xcodebuild.log; do
-            if [ -f "$f" ]; then
-              echo "### $f 尾部100行" >> "$S"
-              echo '```' >> "$S"
-              tail -100 "$f" >> "$S"
-              echo '```' >> "$S"
-            fi
-          done
+            for f in xcodebuild.log sync.log npm.log; do
+              [ -f "$f" ] || continue
+              echo "===== $f ====="
+              grep -iE "error:|Error:|FAILURE|Exception|Exit code|\\*\\* BUILD" "$f" | tail -6
+              tail -18 "$f"
+            done
+          } 2>/dev/null | fold -w 640 | head -10 | sed 's/^/::error::/' || true
