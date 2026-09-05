@@ -1,313 +1,613 @@
-﻿2026-09-05T17:55:07.8224740Z Current runner version: '2.337.0'
-2026-09-05T17:55:07.8244060Z ##[group]Runner Image Provisioner
-2026-09-05T17:55:07.8244730Z Hosted Compute Agent
-2026-09-05T17:55:07.8245100Z Version: 20260828.587
-2026-09-05T17:55:07.8245510Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
-2026-09-05T17:55:07.8246000Z Build Date: 2026-08-28T16:44:25Z
-2026-09-05T17:55:07.8246450Z Worker ID: {d57fcc74-86bd-4b2b-9ebd-61572c97228c}
-2026-09-05T17:55:07.8246920Z Azure Region: westus
-2026-09-05T17:55:07.8247290Z ##[endgroup]
-2026-09-05T17:55:07.8248300Z ##[group]Operating System
-2026-09-05T17:55:07.8248690Z macOS
-2026-09-05T17:55:07.8249010Z 14.8.9
-2026-09-05T17:55:07.8249330Z 23J631
-2026-09-05T17:55:07.8249660Z ##[endgroup]
-2026-09-05T17:55:07.8250000Z ##[group]Runner Image
-2026-09-05T17:55:07.8250370Z Image: macos-14-arm64
-2026-09-05T17:55:07.8250740Z Version: 20260831.0302.1
-2026-09-05T17:55:07.8251620Z Included Software: https://github.com/actions/runner-images/blob/macos-14-arm64/20260831.0302/images/macos/macos-14-arm64-Readme.md
-2026-09-05T17:55:07.8252650Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-14-arm64%2F20260831.0302
-2026-09-05T17:55:07.8253310Z ##[endgroup]
-2026-09-05T17:55:07.8254120Z ##[group]GITHUB_TOKEN Permissions
-2026-09-05T17:55:07.8255510Z Contents: read
-2026-09-05T17:55:07.8255890Z Metadata: read
-2026-09-05T17:55:07.8256240Z Packages: read
-2026-09-05T17:55:07.8257040Z ##[endgroup]
-2026-09-05T17:55:07.8259010Z Secret source: Actions
-2026-09-05T17:55:07.8259720Z Prepare workflow directory
-2026-09-05T17:55:07.8501770Z Prepare all required actions
-2026-09-05T17:55:07.8541130Z Getting action download info
-2026-09-05T17:55:08.1268610Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
-2026-09-05T17:55:08.5066900Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
-2026-09-05T17:55:08.6183780Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
-2026-09-05T17:55:08.8029650Z Complete job name: build
-2026-09-05T17:55:08.8459310Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-2026-09-05T17:55:08.8467490Z ##[group]Run actions/checkout@v4
-2026-09-05T17:55:08.8468060Z with:
-2026-09-05T17:55:08.8468440Z   repository: zhang20230331/shuzhai
-2026-09-05T17:55:08.8472000Z   token: ***
-2026-09-05T17:55:08.8472410Z   ssh-strict: true
-2026-09-05T17:55:08.8472820Z   ssh-user: git
-2026-09-05T17:55:08.8473300Z   persist-credentials: true
-2026-09-05T17:55:08.8473690Z   clean: true
-2026-09-05T17:55:08.8474070Z   sparse-checkout-cone-mode: true
-2026-09-05T17:55:08.8474510Z   fetch-depth: 1
-2026-09-05T17:55:08.8474880Z   fetch-tags: false
-2026-09-05T17:55:08.8475260Z   show-progress: true
-2026-09-05T17:55:08.8475680Z   lfs: false
-2026-09-05T17:55:08.8476090Z   submodules: false
-2026-09-05T17:55:08.8476480Z   set-safe-directory: true
-2026-09-05T17:55:08.8476900Z   allow-unsafe-pr-checkout: false
-2026-09-05T17:55:08.8477510Z ##[endgroup]
-2026-09-05T17:55:09.2119800Z Syncing repository: zhang20230331/shuzhai
-2026-09-05T17:55:09.2121300Z ##[group]Getting Git version info
-2026-09-05T17:55:09.2121870Z Working directory is '/Users/runner/work/shuzhai/shuzhai'
-2026-09-05T17:55:09.2122720Z [command]/opt/homebrew/bin/git version
-2026-09-05T17:55:09.2507190Z git version 2.55.0
-2026-09-05T17:55:09.2521900Z ##[endgroup]
-2026-09-05T17:55:09.2529520Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/045a63f3-2367-441f-bb49-c3076cf6c849/.gitconfig'
-2026-09-05T17:55:09.2534650Z Temporarily overriding HOME='/Users/runner/work/_temp/045a63f3-2367-441f-bb49-c3076cf6c849' before making global git config changes
-2026-09-05T17:55:09.2535880Z Adding repository directory to the temporary git global config as a safe directory
-2026-09-05T17:55:09.2537820Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/shuzhai/shuzhai
-2026-09-05T17:55:09.2656640Z Deleting the contents of '/Users/runner/work/shuzhai/shuzhai'
-2026-09-05T17:55:09.2657820Z ##[group]Initializing the repository
-2026-09-05T17:55:09.2658570Z [command]/opt/homebrew/bin/git init /Users/runner/work/shuzhai/shuzhai
-2026-09-05T17:55:09.2808560Z hint: Using 'master' as the name for the initial branch. This default branch name
-2026-09-05T17:55:09.2811390Z hint: will change to "main" in Git 3.0. To configure the initial branch name
-2026-09-05T17:55:09.2812300Z hint: to use in all of your new repositories, which will suppress this warning,
-2026-09-05T17:55:09.2813010Z hint: call:
-2026-09-05T17:55:09.2813440Z hint:
-2026-09-05T17:55:09.2814740Z hint: 	git config --global init.defaultBranch <name>
-2026-09-05T17:55:09.2815320Z hint:
-2026-09-05T17:55:09.2815920Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
-2026-09-05T17:55:09.2816760Z hint: 'development'. The just-created branch can be renamed via this command:
-2026-09-05T17:55:09.2817450Z hint:
-2026-09-05T17:55:09.2818830Z hint: 	git branch -m <name>
-2026-09-05T17:55:09.2819450Z hint:
-2026-09-05T17:55:09.2820120Z hint: Disable this message with "git config set advice.defaultBranchName false"
-2026-09-05T17:55:09.2821160Z Initialized empty Git repository in /Users/runner/work/shuzhai/shuzhai/.git/
-2026-09-05T17:55:09.2822960Z [command]/opt/homebrew/bin/git remote add origin https://github.com/zhang20230331/shuzhai
-2026-09-05T17:55:09.2868990Z ##[endgroup]
-2026-09-05T17:55:09.2869780Z ##[group]Disabling automatic garbage collection
-2026-09-05T17:55:09.2870840Z [command]/opt/homebrew/bin/git config --local gc.auto 0
-2026-09-05T17:55:09.2909190Z ##[endgroup]
-2026-09-05T17:55:09.2909930Z ##[group]Setting up auth
-2026-09-05T17:55:09.2913680Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
-2026-09-05T17:55:09.2959520Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2026-09-05T17:55:09.3768220Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2026-09-05T17:55:09.3803070Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2026-09-05T17:55:09.4248810Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
-2026-09-05T17:55:09.4285060Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
-2026-09-05T17:55:09.4729870Z [command]/opt/homebrew/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
-2026-09-05T17:55:09.4782260Z ##[endgroup]
-2026-09-05T17:55:09.4784290Z ##[group]Fetching the repository
-2026-09-05T17:55:09.4788590Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ed74488c888a5b8dab672620b8a8373137bcd1d7:refs/remotes/origin/main
-2026-09-05T17:55:10.1408990Z From https://github.com/zhang20230331/shuzhai
-2026-09-05T17:55:10.1411380Z  * [new ref]         ed74488c888a5b8dab672620b8a8373137bcd1d7 -> origin/main
-2026-09-05T17:55:10.1414130Z ##[endgroup]
-2026-09-05T17:55:10.1415010Z ##[group]Determining the checkout info
-2026-09-05T17:55:10.1415980Z ##[endgroup]
-2026-09-05T17:55:10.1416860Z [command]/opt/homebrew/bin/git sparse-checkout disable
-2026-09-05T17:55:10.1472810Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
-2026-09-05T17:55:10.1520390Z ##[group]Checking out the ref
-2026-09-05T17:55:10.1522120Z [command]/opt/homebrew/bin/git checkout --progress --force -B main refs/remotes/origin/main
-2026-09-05T17:55:10.2615770Z Switched to a new branch 'main'
-2026-09-05T17:55:10.2621960Z branch 'main' set up to track 'origin/main'.
-2026-09-05T17:55:10.2627240Z ##[endgroup]
-2026-09-05T17:55:10.2696600Z [command]/opt/homebrew/bin/git log -1 --format=%H
-2026-09-05T17:55:10.2737000Z ed74488c888a5b8dab672620b8a8373137bcd1d7
-2026-09-05T17:55:10.3230320Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-2026-09-05T17:55:10.3234410Z ##[group]Run actions/setup-node@v4
-2026-09-05T17:55:10.3235180Z with:
-2026-09-05T17:55:10.3235760Z   node-version: 22
-2026-09-05T17:55:10.3236400Z   always-auth: false
-2026-09-05T17:55:10.3237140Z   check-latest: false
-2026-09-05T17:55:10.3244460Z   token: ***
-2026-09-05T17:55:10.3245040Z ##[endgroup]
-2026-09-05T17:55:10.4375210Z Found in cache @ /Users/runner/hostedtoolcache/node/22.23.2/arm64
-2026-09-05T17:55:10.4377290Z (node:3775) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
-2026-09-05T17:55:10.4379480Z (Use `node --trace-deprecation ...` to show where the warning was created)
-2026-09-05T17:55:10.4381210Z ##[group]Environment details
-2026-09-05T17:55:10.9200470Z node: v22.23.2
-2026-09-05T17:55:10.9200790Z npm: 10.9.8
-2026-09-05T17:55:10.9200940Z yarn: 1.22.22
-2026-09-05T17:55:10.9201470Z ##[endgroup]
-2026-09-05T17:55:10.9265360Z ##[group]Run defaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM YES
-2026-09-05T17:55:10.9265910Z [36;1mdefaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM YES[0m
-2026-09-05T17:55:10.9266450Z [36;1mrm -rf ~/Library/Caches/org.swift.swiftpm ~/Library/org.swift.swiftpm || true[0m
-2026-09-05T17:55:10.9267010Z [36;1mrm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm || true[0m
-2026-09-05T17:55:10.9331940Z shell: /bin/bash -e {0}
-2026-09-05T17:55:10.9332150Z ##[endgroup]
-2026-09-05T17:55:11.0196270Z ##[group]Run set -o pipefail; npm ci 2>&1 | tee npm.log
-2026-09-05T17:55:11.0196650Z [36;1mset -o pipefail; npm ci 2>&1 | tee npm.log[0m
-2026-09-05T17:55:11.0253530Z shell: /bin/bash -e {0}
-2026-09-05T17:55:11.0253790Z ##[endgroup]
-2026-09-05T17:55:15.1718030Z 
-2026-09-05T17:55:15.1723780Z added 133 packages, and audited 134 packages in 4s
-2026-09-05T17:55:15.1743830Z 
-2026-09-05T17:55:15.1744300Z 20 packages are looking for funding
-2026-09-05T17:55:15.1744680Z   run `npm fund` for details
-2026-09-05T17:55:15.1828230Z 
-2026-09-05T17:55:15.1828790Z 3 moderate severity vulnerabilities
-2026-09-05T17:55:15.1829150Z 
-2026-09-05T17:55:15.1829490Z To address all issues (including breaking changes), run:
-2026-09-05T17:55:15.1829890Z   npm audit fix --force
-2026-09-05T17:55:15.1830100Z 
-2026-09-05T17:55:15.1830310Z Run `npm audit` for details.
-2026-09-05T17:55:15.2873700Z ##[group]Run set -o pipefail; npx cap sync ios 2>&1 | tee sync.log
-2026-09-05T17:55:15.2874160Z [36;1mset -o pipefail; npx cap sync ios 2>&1 | tee sync.log[0m
-2026-09-05T17:55:15.2927210Z shell: /bin/bash -e {0}
-2026-09-05T17:55:15.2927390Z ##[endgroup]
-2026-09-05T17:55:15.6942080Z ✔ Copying web assets from public to ios/App/App/public in 8.83ms
-2026-09-05T17:55:15.7045230Z ✔ Creating capacitor.config.json in ios/App/App in 631.21μs
-2026-09-05T17:55:15.7144500Z ✔ copy ios in 19.33ms
-2026-09-05T17:55:15.7246540Z ✔ Updating iOS plugins in 601.13μs
-2026-09-05T17:55:15.7282600Z [info] All Capacitor plugins have a Package.swift file and will be included in Package.swift
-2026-09-05T17:55:15.7285280Z [info] Writing Package.swift
-2026-09-05T17:55:15.7286460Z [info] Found 1 Capacitor plugin for ios:
-2026-09-05T17:55:15.7287490Z        @capacitor-community/text-to-speech@8.0.2
-2026-09-05T17:55:15.7289020Z ✔ update ios in 16.47ms
-2026-09-05T17:55:15.7289940Z [info] Sync finished in 0.049s
-2026-09-05T17:55:15.7705680Z ##[group]Run cd ios/App/CapApp-SPM
-2026-09-05T17:55:15.7708080Z [36;1mcd ios/App/CapApp-SPM[0m
-2026-09-05T17:55:15.7708360Z [36;1mgrep -n "node_modules" Package.swift || true[0m
-2026-09-05T17:55:15.7709020Z [36;1msed -i '' 's|path: "[^"]*node_modules/@capacitor-community/text-to-speech"|url: "https://github.com/capacitor-community/text-to-speech.git", branch: "master"|' Package.swift[0m
-2026-09-05T17:55:15.7709670Z [36;1mgrep -n "text-to-speech" Package.swift[0m
-2026-09-05T17:55:15.7761900Z shell: /bin/bash -e {0}
-2026-09-05T17:55:15.7762090Z ##[endgroup]
-2026-09-05T17:55:15.8040220Z 15:        .package(name: "CapacitorCommunityTextToSpeech", path: "../../../node_modules/@capacitor-community/text-to-speech")
-2026-09-05T17:55:15.8075090Z 15:        .package(name: "CapacitorCommunityTextToSpeech", url: "https://github.com/capacitor-community/text-to-speech.git", branch: "master")
-2026-09-05T17:55:15.8104460Z ##[group]Run cd ios/App/CapApp-SPM
-2026-09-05T17:55:15.8104790Z [36;1mcd ios/App/CapApp-SPM[0m
-2026-09-05T17:55:15.8105020Z [36;1mswift --version > ../../diag_swift.log 2>&1 || true[0m
-2026-09-05T17:55:15.8105410Z [36;1mswift package dump-package >> ../../diag_swift.log 2>&1 || true[0m
-2026-09-05T17:55:15.8105750Z [36;1mswift package resolve >> ../../diag_swift.log 2>&1 || true[0m
-2026-09-05T17:55:15.8106020Z [36;1mtail -5 ../../diag_swift.log[0m
-2026-09-05T17:55:15.8164630Z shell: /bin/bash -e {0}
-2026-09-05T17:55:15.8164800Z ##[endgroup]
-2026-09-05T17:55:26.4896590Z [80046/8457592] Downloading https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Cordova.xcframework.zip, https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Capacitor.xcframework.zip
-2026-09-05T17:55:26.4898060Z Downloading binary artifact https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Cordova.xcframework.zip
-2026-09-05T17:55:26.4899370Z Downloading binary artifact https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Capacitor.xcframework.zip
-2026-09-05T17:55:26.4900290Z Downloaded https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Cordova.xcframework.zip (0.75s)
-2026-09-05T17:55:26.4901160Z Downloaded https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Capacitor.xcframework.zip (0.99s)
-2026-09-05T17:55:26.5043340Z ##[group]Run set -o pipefail
-2026-09-05T17:55:26.5043680Z [36;1mset -o pipefail[0m
-2026-09-05T17:55:26.5043870Z [36;1mcd ios/App[0m
-2026-09-05T17:55:26.5044290Z [36;1mxcodebuild -project App.xcodeproj -resolvePackageDependencies 2>&1 | tee ../../resolve.log[0m
-2026-09-05T17:55:26.5118720Z shell: /bin/bash -e {0}
-2026-09-05T17:55:26.5118930Z ##[endgroup]
-2026-09-05T17:55:27.2691360Z Command line invocation:
-2026-09-05T17:55:27.2695100Z     /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/xcodebuild -project App.xcodeproj -resolvePackageDependencies
-2026-09-05T17:55:27.2698290Z 
-2026-09-05T17:55:27.2701970Z User defaults from command line:
-2026-09-05T17:55:27.2704220Z     IDEPackageSupportUseBuiltinSCM = YES
-2026-09-05T17:55:27.2710570Z 
-2026-09-05T17:55:35.7762750Z Resolve Package Graph
-2026-09-05T17:55:39.1680490Z 
-2026-09-05T17:55:39.1709130Z Fetching from https://github.com/capacitor-community/text-to-speech.git (cached)
-2026-09-05T17:55:39.5599490Z 
-2026-09-05T17:55:39.8676290Z Fetching from https://github.com/ionic-team/capacitor-swift-pm.git (cached)
-2026-09-05T17:55:40.4193440Z 
-2026-09-05T17:55:40.7298260Z Creating working copy of package ‘capacitor-swift-pm’
-2026-09-05T17:55:40.7613650Z 
-2026-09-05T17:55:40.7614650Z Checking out 8.5.1 of package ‘capacitor-swift-pm’
-2026-09-05T17:55:40.7842270Z 
-2026-09-05T17:55:40.7883610Z Creating working copy of package ‘text-to-speech’
-2026-09-05T17:55:40.8100790Z 
-2026-09-05T17:55:40.8105620Z Checking out master (2ef4732) of package ‘text-to-speech’
-2026-09-05T17:55:40.8356740Z 
-2026-09-05T17:55:41.6065450Z 
-2026-09-05T17:55:41.6087750Z Resolved source packages:
-2026-09-05T17:55:41.6100490Z   CapApp-SPM: /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM @ local
-2026-09-05T17:55:41.6194090Z   CapacitorCommunityTextToSpeech: https://github.com/capacitor-community/text-to-speech.git @ master (2ef4732)
-2026-09-05T17:55:41.6225460Z   capacitor-swift-pm: https://github.com/ionic-team/capacitor-swift-pm.git @ 8.5.1
-2026-09-05T17:55:41.6252930Z 
-2026-09-05T17:55:41.6255530Z resolved source packages: CapApp-SPM, CapacitorCommunityTextToSpeech, capacitor-swift-pm
-2026-09-05T17:55:41.6342250Z ##[group]Run plutil -lint ios/App/App.xcodeproj/project.pbxproj || true
-2026-09-05T17:55:41.6343040Z [36;1mplutil -lint ios/App/App.xcodeproj/project.pbxproj || true[0m
-2026-09-05T17:55:41.6343630Z [36;1mxcodebuild -list -project ios/App/App.xcodeproj 2>&1 | tee diag_list.log || true[0m
-2026-09-05T17:55:41.6344210Z [36;1mcd ios/App/CapApp-SPM[0m
-2026-09-05T17:55:41.6344620Z [36;1mswift package resolve 2>&1 | tee ../../diag_swift.log | tail -5 || true[0m
-2026-09-05T17:55:41.6706950Z shell: /bin/bash -e {0}
-2026-09-05T17:55:41.6707310Z ##[endgroup]
-2026-09-05T17:55:41.7423680Z ios/App/App.xcodeproj/project.pbxproj: OK
-2026-09-05T17:55:43.3512810Z Command line invocation:
-2026-09-05T17:55:43.3531640Z     /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/xcodebuild -list -project ios/App/App.xcodeproj
-2026-09-05T17:55:43.3532600Z 
-2026-09-05T17:55:43.3533140Z User defaults from command line:
-2026-09-05T17:55:43.3533930Z     IDEPackageSupportUseBuiltinSCM = YES
-2026-09-05T17:55:43.3534630Z 
-2026-09-05T17:55:43.9013620Z Resolve Package Graph
-2026-09-05T17:55:44.8120950Z 
-2026-09-05T17:55:44.8159020Z 
-2026-09-05T17:55:44.8159810Z Resolved source packages:
-2026-09-05T17:55:44.8161050Z   capacitor-swift-pm: https://github.com/ionic-team/capacitor-swift-pm.git @ 8.5.1
-2026-09-05T17:55:44.8162270Z   CapApp-SPM: /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM @ local
-2026-09-05T17:55:44.8163160Z   CapacitorCommunityTextToSpeech: https://github.com/capacitor-community/text-to-speech.git @ master (2ef4732)
-2026-09-05T17:55:44.8165620Z 
-2026-09-05T17:55:44.8217130Z Information about project "App":
-2026-09-05T17:55:44.8219030Z     Targets:
-2026-09-05T17:55:44.8219680Z         App
-2026-09-05T17:55:44.8220070Z 
-2026-09-05T17:55:44.8220360Z     Build Configurations:
-2026-09-05T17:55:44.8220830Z         Debug
-2026-09-05T17:55:44.8221670Z         Release
-2026-09-05T17:55:44.8244790Z 
-2026-09-05T17:55:44.8245510Z     If no build configuration is specified and -scheme is not passed then "Release" is used.
-2026-09-05T17:55:44.8246010Z 
-2026-09-05T17:55:44.8246320Z     Schemes:
-2026-09-05T17:55:44.8247440Z         App
-2026-09-05T17:55:44.8261650Z 
-2026-09-05T17:55:45.6551940Z warning: 'capapp-spm': /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/Package.swift:15:10: warning: 'package(name:url:branch:)' is deprecated: use package(url:branch:) instead
-2026-09-05T17:55:45.6863490Z         .package(name: "CapacitorCommunityTextToSpeech", url: "https://github.com/capacitor-community/text-to-speech.git", branch: "master")
-2026-09-05T17:55:45.6965670Z          ^
-2026-09-05T17:55:45.7110540Z ##[group]Run set -o pipefail
-2026-09-05T17:55:45.7110990Z [36;1mset -o pipefail[0m
-2026-09-05T17:55:45.7111740Z [36;1mcd ios/App[0m
-2026-09-05T17:55:45.7112220Z [36;1mxcodebuild -project App.xcodeproj -target App \[0m
-2026-09-05T17:55:45.7112530Z [36;1m  -configuration Release -sdk iphoneos \[0m
-2026-09-05T17:55:45.7112940Z [36;1m  -clonedSourcePackagesDirPath "$GITHUB_WORKSPACE/spm" \[0m
-2026-09-05T17:55:45.7113350Z [36;1m  -disableAutomaticPackageResolution \[0m
-2026-09-05T17:55:45.7113810Z [36;1m  CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \[0m
-2026-09-05T17:55:45.7114340Z [36;1m  -derivedDataPath "$GITHUB_WORKSPACE/build" 2>&1 | tee ../../xcodebuild.log[0m
-2026-09-05T17:55:45.7114680Z [36;1mmkdir -p Payload[0m
-2026-09-05T17:55:45.7115330Z [36;1mcp -r "$GITHUB_WORKSPACE/build/Build/Products/Release-iphoneos/App.app" Payload/[0m
-2026-09-05T17:55:45.7115830Z [36;1mzip -qry shuzhai-unsigned.ipa Payload[0m
-2026-09-05T17:55:45.7324150Z shell: /bin/bash -e {0}
-2026-09-05T17:55:45.7324680Z ##[endgroup]
-2026-09-05T17:55:46.1944580Z 2026-09-05 17:55:46.194 xcodebuild[5129:17837] Writing error result bundle to /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/T/ResultBundle_2026-05-09_17-55-0046.xcresult
-2026-09-05T17:55:46.2847320Z xcodebuild: error: The flag -scheme, -testProductsPath, or -xctestrun is required when specifying -derivedDataPath.
-2026-09-05T17:55:46.2887360Z ##[error]Process completed with exit code 64.
-2026-09-05T17:55:46.2939590Z ##[group]Run {
-2026-09-05T17:55:46.2939890Z [36;1m{[0m
-2026-09-05T17:55:46.2940100Z [36;1m  echo "=== xcodebuild.log 全量 ==="[0m
-2026-09-05T17:55:46.2940420Z [36;1m  cat xcodebuild.log 2>/dev/null | tr '\n' '|' | fold -w 640[0m
-2026-09-05T17:55:46.2940700Z [36;1m  echo ""[0m
-2026-09-05T17:55:46.2940880Z [36;1m  echo "=== diag_list.log 全量 ==="[0m
-2026-09-05T17:55:46.2941170Z [36;1m  cat diag_list.log 2>/dev/null | tr '\n' '|' | fold -w 640[0m
-2026-09-05T17:55:46.2941450Z [36;1m  echo ""[0m
-2026-09-05T17:55:46.2941670Z [36;1m  echo "=== diag_swift.log 全量 ==="[0m
-2026-09-05T17:55:46.2942030Z [36;1m  cat diag_swift.log 2>/dev/null | tr '\n' '|' | fold -w 640[0m
-2026-09-05T17:55:46.2942590Z [36;1m  echo ""[0m
-2026-09-05T17:55:46.2942870Z [36;1m  echo "=== resolve.log 尾部 ==="[0m
-2026-09-05T17:55:46.2943170Z [36;1m  tail -12 resolve.log 2>/dev/null | tr '\n' '|' | fold -w 640[0m
-2026-09-05T17:55:46.2943450Z [36;1m  echo ""[0m
-2026-09-05T17:55:46.2943730Z [36;1m} | head -14 | sed 's/^/::error::/' || true[0m
-2026-09-05T17:55:46.3010900Z shell: /bin/bash -e {0}
-2026-09-05T17:55:46.3011130Z ##[endgroup]
-2026-09-05T17:55:46.3645410Z ##[error]=== xcodebuild.log 全量 ===
-2026-09-05T17:55:46.3648460Z ##[error]2026-09-05 17:55:46.194 xcodebuild[5129:17837] Writing error result bundle to /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/T/ResultBundle_2026-05-09_17-55-0046.xcresult|xcodebuild: error: The flag -scheme, -testProductsPath, or -xctestrun is required when specifying -derivedDataPath.|
-2026-09-05T17:55:46.3651140Z ##[error]=== diag_list.log 全量 ===
-2026-09-05T17:55:46.3655900Z ##[error]Command line invocation:|    /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/xcodebuild -list -project ios/App/App.xcodeproj||User defaults from command line:|    IDEPackageSupportUseBuiltinSCM = YES||Resolve Package Graph|||Resolved source packages:|  capacitor-swift-pm: https://github.com/ionic-team/capacitor-swift-pm.git @ 8.5.1|  CapApp-SPM: /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM @ local|  CapacitorCommunityTextToSpeech: https://github.com/capacitor-community/text-to-speech.git @ master (2ef4732)||Information about project "App":|    Targets:|        App||    Build Configurations:|        Debug|        Rel
-2026-09-05T17:55:46.3659370Z ##[error]ease||    If no build configuration is specified and -scheme is not passed then "Release" is used.||    Schemes:|        App||
-2026-09-05T17:55:46.3661040Z ##[error]=== diag_swift.log 全量 ===
-2026-09-05T17:55:46.3680410Z ##[error]=== resolve.log 尾部 ===
-2026-09-05T17:55:46.3684770Z ##[error]|Creating working copy of package ‘text-to-speech’||Checking out master (2ef4732) of package ‘text-to-speech’|||Resolved source packages:|  CapApp-SPM: /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM @ local|  CapacitorCommunityTextToSpeech: https://github.com/capacitor-community/text-to-speech.git @ master (2ef4732)|  capacitor-swift-pm: https://github.com/ionic-team/capacitor-swift-pm.git @ 8.5.1||resolved source packages: CapApp-SPM, CapacitorCommunityTextToSpeech, capacitor-swift-pm|
-2026-09-05T17:55:46.3807020Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-2026-09-05T17:55:46.3808110Z Post job cleanup.
-2026-09-05T17:55:46.6259700Z [command]/opt/homebrew/bin/git version
-2026-09-05T17:55:46.6572370Z git version 2.55.0
-2026-09-05T17:55:46.6635630Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/bb4503d4-7ef6-47a7-9ed5-d97b100e9843/.gitconfig'
-2026-09-05T17:55:46.6653490Z Temporarily overriding HOME='/Users/runner/work/_temp/bb4503d4-7ef6-47a7-9ed5-d97b100e9843' before making global git config changes
-2026-09-05T17:55:46.6664790Z Adding repository directory to the temporary git global config as a safe directory
-2026-09-05T17:55:46.6682390Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/shuzhai/shuzhai
-2026-09-05T17:55:46.6791010Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
-2026-09-05T17:55:46.6857540Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2026-09-05T17:55:46.8010850Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2026-09-05T17:55:46.8108710Z http.https://github.com/.extraheader
-2026-09-05T17:55:46.8124700Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader
-2026-09-05T17:55:46.8244030Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2026-09-05T17:55:46.9264560Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
-2026-09-05T17:55:46.9350810Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
-2026-09-05T17:55:47.0463710Z Cleaning up orphan processes
-2026-09-05T17:55:47.9389160Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+﻿2026-09-05T18:04:35.5772570Z Current runner version: '2.337.0'
+2026-09-05T18:04:35.5786100Z ##[group]Runner Image Provisioner
+2026-09-05T18:04:35.5786610Z Hosted Compute Agent
+2026-09-05T18:04:35.5787050Z Version: 20260828.587
+2026-09-05T18:04:35.5787440Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-05T18:04:35.5787910Z Build Date: 2026-08-28T16:44:25Z
+2026-09-05T18:04:35.5788330Z Worker ID: {fe4bba5a-7530-49c8-aeb2-2a1772196799}
+2026-09-05T18:04:35.5788790Z Azure Region: westus
+2026-09-05T18:04:35.5789140Z ##[endgroup]
+2026-09-05T18:04:35.5789940Z ##[group]Operating System
+2026-09-05T18:04:35.5790320Z macOS
+2026-09-05T18:04:35.5790640Z 14.8.9
+2026-09-05T18:04:35.5790960Z 23J631
+2026-09-05T18:04:35.5791280Z ##[endgroup]
+2026-09-05T18:04:35.5791630Z ##[group]Runner Image
+2026-09-05T18:04:35.5792000Z Image: macos-14-arm64
+2026-09-05T18:04:35.5792370Z Version: 20260831.0302.1
+2026-09-05T18:04:35.5793140Z Included Software: https://github.com/actions/runner-images/blob/macos-14-arm64/20260831.0302/images/macos/macos-14-arm64-Readme.md
+2026-09-05T18:04:35.5794150Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-14-arm64%2F20260831.0302
+2026-09-05T18:04:35.5794780Z ##[endgroup]
+2026-09-05T18:04:35.5795530Z ##[group]GITHUB_TOKEN Permissions
+2026-09-05T18:04:35.5796480Z Contents: read
+2026-09-05T18:04:35.5796830Z Metadata: read
+2026-09-05T18:04:35.5797180Z Packages: read
+2026-09-05T18:04:35.5797530Z ##[endgroup]
+2026-09-05T18:04:35.5798740Z Secret source: Actions
+2026-09-05T18:04:35.5799350Z Prepare workflow directory
+2026-09-05T18:04:35.5998100Z Prepare all required actions
+2026-09-05T18:04:35.6031580Z Getting action download info
+2026-09-05T18:04:35.8821190Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-09-05T18:04:36.2559080Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-09-05T18:04:36.3532360Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-09-05T18:04:36.5032140Z Complete job name: build
+2026-09-05T18:04:36.5429340Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-05T18:04:36.5435130Z ##[group]Run actions/checkout@v4
+2026-09-05T18:04:36.5435570Z with:
+2026-09-05T18:04:36.5435870Z   repository: zhang20230331/shuzhai
+2026-09-05T18:04:36.5438430Z   token: ***
+2026-09-05T18:04:36.5438780Z   ssh-strict: true
+2026-09-05T18:04:36.5439080Z   ssh-user: git
+2026-09-05T18:04:36.5439380Z   persist-credentials: true
+2026-09-05T18:04:36.5439690Z   clean: true
+2026-09-05T18:04:36.5440000Z   sparse-checkout-cone-mode: true
+2026-09-05T18:04:36.5440340Z   fetch-depth: 1
+2026-09-05T18:04:36.5440630Z   fetch-tags: false
+2026-09-05T18:04:36.5440930Z   show-progress: true
+2026-09-05T18:04:36.5441250Z   lfs: false
+2026-09-05T18:04:36.5441540Z   submodules: false
+2026-09-05T18:04:36.5441850Z   set-safe-directory: true
+2026-09-05T18:04:36.5442190Z   allow-unsafe-pr-checkout: false
+2026-09-05T18:04:36.5442640Z ##[endgroup]
+2026-09-05T18:04:36.8433540Z Syncing repository: zhang20230331/shuzhai
+2026-09-05T18:04:36.8434990Z ##[group]Getting Git version info
+2026-09-05T18:04:36.8435550Z Working directory is '/Users/runner/work/shuzhai/shuzhai'
+2026-09-05T18:04:36.8436420Z [command]/opt/homebrew/bin/git version
+2026-09-05T18:04:36.8639630Z git version 2.55.0
+2026-09-05T18:04:36.8652170Z ##[endgroup]
+2026-09-05T18:04:36.8657630Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/bcffa790-b540-4bbf-8e0a-29357f9ea9e6/.gitconfig'
+2026-09-05T18:04:36.8726380Z Temporarily overriding HOME='/Users/runner/work/_temp/bcffa790-b540-4bbf-8e0a-29357f9ea9e6' before making global git config changes
+2026-09-05T18:04:36.8727400Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-05T18:04:36.8729980Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/shuzhai/shuzhai
+2026-09-05T18:04:36.9012270Z Deleting the contents of '/Users/runner/work/shuzhai/shuzhai'
+2026-09-05T18:04:36.9015380Z ##[group]Initializing the repository
+2026-09-05T18:04:36.9021260Z [command]/opt/homebrew/bin/git init /Users/runner/work/shuzhai/shuzhai
+2026-09-05T18:04:36.9196510Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-05T18:04:36.9198260Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-05T18:04:36.9199900Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-05T18:04:36.9200720Z hint: call:
+2026-09-05T18:04:36.9201200Z hint:
+2026-09-05T18:04:36.9201750Z hint: 	git config --global init.defaultBranch <name>
+2026-09-05T18:04:36.9203060Z hint:
+2026-09-05T18:04:36.9203710Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-05T18:04:36.9204650Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-05T18:04:36.9205470Z hint:
+2026-09-05T18:04:36.9206020Z hint: 	git branch -m <name>
+2026-09-05T18:04:36.9206600Z hint:
+2026-09-05T18:04:36.9209240Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-05T18:04:36.9210200Z Initialized empty Git repository in /Users/runner/work/shuzhai/shuzhai/.git/
+2026-09-05T18:04:36.9211860Z [command]/opt/homebrew/bin/git remote add origin https://github.com/zhang20230331/shuzhai
+2026-09-05T18:04:36.9381350Z ##[endgroup]
+2026-09-05T18:04:36.9382030Z ##[group]Disabling automatic garbage collection
+2026-09-05T18:04:36.9384780Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+2026-09-05T18:04:36.9423980Z ##[endgroup]
+2026-09-05T18:04:36.9424570Z ##[group]Setting up auth
+2026-09-05T18:04:36.9428370Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-05T18:04:36.9464310Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-05T18:04:37.0033620Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-05T18:04:37.0076160Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-05T18:04:37.0560890Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-05T18:04:37.0603070Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-05T18:04:37.1046250Z [command]/opt/homebrew/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-05T18:04:37.1089320Z ##[endgroup]
+2026-09-05T18:04:37.1089960Z ##[group]Fetching the repository
+2026-09-05T18:04:37.1095350Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +f4ac11e4558af61efa9e8041df2d96550292ce98:refs/remotes/origin/main
+2026-09-05T18:04:37.6956590Z From https://github.com/zhang20230331/shuzhai
+2026-09-05T18:04:37.6958470Z  * [new ref]         f4ac11e4558af61efa9e8041df2d96550292ce98 -> origin/main
+2026-09-05T18:04:37.6960690Z ##[endgroup]
+2026-09-05T18:04:37.6961460Z ##[group]Determining the checkout info
+2026-09-05T18:04:37.6962320Z ##[endgroup]
+2026-09-05T18:04:37.6964600Z [command]/opt/homebrew/bin/git sparse-checkout disable
+2026-09-05T18:04:37.7021050Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-05T18:04:37.7062970Z ##[group]Checking out the ref
+2026-09-05T18:04:37.7064520Z [command]/opt/homebrew/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-09-05T18:04:37.7526550Z Switched to a new branch 'main'
+2026-09-05T18:04:37.7533350Z branch 'main' set up to track 'origin/main'.
+2026-09-05T18:04:37.7535680Z ##[endgroup]
+2026-09-05T18:04:37.7603470Z [command]/opt/homebrew/bin/git log -1 --format=%H
+2026-09-05T18:04:37.7639090Z f4ac11e4558af61efa9e8041df2d96550292ce98
+2026-09-05T18:04:37.7901820Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-05T18:04:37.7905150Z ##[group]Run actions/setup-node@v4
+2026-09-05T18:04:37.7905900Z with:
+2026-09-05T18:04:37.7906510Z   node-version: 22
+2026-09-05T18:04:37.7907150Z   always-auth: false
+2026-09-05T18:04:37.7907810Z   check-latest: false
+2026-09-05T18:04:37.7914020Z   token: ***
+2026-09-05T18:04:37.7914640Z ##[endgroup]
+2026-09-05T18:04:37.8949250Z Found in cache @ /Users/runner/hostedtoolcache/node/22.23.2/arm64
+2026-09-05T18:04:37.8951280Z (node:8240) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-05T18:04:37.8953090Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-05T18:04:37.8954770Z ##[group]Environment details
+2026-09-05T18:04:38.3506140Z node: v22.23.2
+2026-09-05T18:04:38.3509750Z npm: 10.9.8
+2026-09-05T18:04:38.3510280Z yarn: 1.22.22
+2026-09-05T18:04:38.3511110Z ##[endgroup]
+2026-09-05T18:04:38.3579500Z ##[group]Run defaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM YES
+2026-09-05T18:04:38.3580050Z [36;1mdefaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM YES[0m
+2026-09-05T18:04:38.3580540Z [36;1mrm -rf ~/Library/Caches/org.swift.swiftpm ~/Library/org.swift.swiftpm || true[0m
+2026-09-05T18:04:38.3581030Z [36;1mrm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm || true[0m
+2026-09-05T18:04:38.3640040Z shell: /bin/bash -e {0}
+2026-09-05T18:04:38.3640360Z ##[endgroup]
+2026-09-05T18:04:38.4070450Z ##[group]Run set -o pipefail; npm ci 2>&1 | tee npm.log
+2026-09-05T18:04:38.4070830Z [36;1mset -o pipefail; npm ci 2>&1 | tee npm.log[0m
+2026-09-05T18:04:38.4122220Z shell: /bin/bash -e {0}
+2026-09-05T18:04:38.4122600Z ##[endgroup]
+2026-09-05T18:04:42.7808280Z 
+2026-09-05T18:04:42.7813380Z added 133 packages, and audited 134 packages in 4s
+2026-09-05T18:04:42.7813730Z 
+2026-09-05T18:04:42.7813900Z 20 packages are looking for funding
+2026-09-05T18:04:42.7814170Z   run `npm fund` for details
+2026-09-05T18:04:42.7915510Z 
+2026-09-05T18:04:42.7916310Z 3 moderate severity vulnerabilities
+2026-09-05T18:04:42.7916600Z 
+2026-09-05T18:04:42.7916930Z To address all issues (including breaking changes), run:
+2026-09-05T18:04:42.7917310Z   npm audit fix --force
+2026-09-05T18:04:42.7917490Z 
+2026-09-05T18:04:42.7917670Z Run `npm audit` for details.
+2026-09-05T18:04:42.8864650Z ##[group]Run set -o pipefail; npx cap sync ios 2>&1 | tee sync.log
+2026-09-05T18:04:42.8865090Z [36;1mset -o pipefail; npx cap sync ios 2>&1 | tee sync.log[0m
+2026-09-05T18:04:42.8923730Z shell: /bin/bash -e {0}
+2026-09-05T18:04:42.8924050Z ##[endgroup]
+2026-09-05T18:04:43.3110820Z ✔ Copying web assets from public to ios/App/App/public in 12.64ms
+2026-09-05T18:04:43.3155990Z ✔ Creating capacitor.config.json in ios/App/App in 588.58μs
+2026-09-05T18:04:43.3157080Z ✔ copy ios in 18.95ms
+2026-09-05T18:04:43.3215010Z ✔ Updating iOS plugins in 369.79μs
+2026-09-05T18:04:43.3314350Z [info] All Capacitor plugins have a Package.swift file and will be included in Package.swift
+2026-09-05T18:04:43.3320000Z [info] Writing Package.swift
+2026-09-05T18:04:43.3321300Z [info] Found 1 Capacitor plugin for ios:
+2026-09-05T18:04:43.3327720Z        @capacitor-community/text-to-speech@8.0.2
+2026-09-05T18:04:43.3335120Z ✔ update ios in 11.21ms
+2026-09-05T18:04:43.3339070Z [info] Sync finished in 0.039s
+2026-09-05T18:04:43.3778490Z ##[group]Run cd ios/App/CapApp-SPM
+2026-09-05T18:04:43.3780860Z [36;1mcd ios/App/CapApp-SPM[0m
+2026-09-05T18:04:43.3781140Z [36;1mgrep -n "node_modules" Package.swift || true[0m
+2026-09-05T18:04:43.3781870Z [36;1msed -i '' 's|path: "[^"]*node_modules/@capacitor-community/text-to-speech"|url: "https://github.com/capacitor-community/text-to-speech.git", branch: "master"|' Package.swift[0m
+2026-09-05T18:04:43.3782600Z [36;1mgrep -n "text-to-speech" Package.swift[0m
+2026-09-05T18:04:43.3838290Z shell: /bin/bash -e {0}
+2026-09-05T18:04:43.3838510Z ##[endgroup]
+2026-09-05T18:04:43.4071250Z 15:        .package(name: "CapacitorCommunityTextToSpeech", path: "../../../node_modules/@capacitor-community/text-to-speech")
+2026-09-05T18:04:43.4107070Z 15:        .package(name: "CapacitorCommunityTextToSpeech", url: "https://github.com/capacitor-community/text-to-speech.git", branch: "master")
+2026-09-05T18:04:43.4147830Z ##[group]Run cd ios/App/CapApp-SPM
+2026-09-05T18:04:43.4148150Z [36;1mcd ios/App/CapApp-SPM[0m
+2026-09-05T18:04:43.4148410Z [36;1mswift --version > ../../diag_swift.log 2>&1 || true[0m
+2026-09-05T18:04:43.4148770Z [36;1mswift package dump-package >> ../../diag_swift.log 2>&1 || true[0m
+2026-09-05T18:04:43.4149110Z [36;1mswift package resolve >> ../../diag_swift.log 2>&1 || true[0m
+2026-09-05T18:04:43.4149370Z [36;1mtail -5 ../../diag_swift.log[0m
+2026-09-05T18:04:43.4199680Z shell: /bin/bash -e {0}
+2026-09-05T18:04:43.4199880Z ##[endgroup]
+2026-09-05T18:04:52.7325750Z [343106/8457592] Downloading https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Cordova.xcframework.zip, https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Capacitor.xcframework.zip
+2026-09-05T18:04:52.7327310Z Downloading binary artifact https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Cordova.xcframework.zip
+2026-09-05T18:04:52.7328460Z Downloading binary artifact https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Capacitor.xcframework.zip
+2026-09-05T18:04:52.7329440Z Downloaded https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Cordova.xcframework.zip (0.62s)
+2026-09-05T18:04:52.7330420Z Downloaded https://github.com/ionic-team/capacitor-swift-pm/releases/download/8.5.1/Capacitor.xcframework.zip (0.85s)
+2026-09-05T18:04:52.7577330Z ##[group]Run set -o pipefail
+2026-09-05T18:04:52.7577640Z [36;1mset -o pipefail[0m
+2026-09-05T18:04:52.7577900Z [36;1mcd ios/App[0m
+2026-09-05T18:04:52.7578300Z [36;1mxcodebuild -project App.xcodeproj -resolvePackageDependencies 2>&1 | tee ../../resolve.log[0m
+2026-09-05T18:04:52.7633500Z shell: /bin/bash -e {0}
+2026-09-05T18:04:52.7633680Z ##[endgroup]
+2026-09-05T18:04:53.5682890Z Command line invocation:
+2026-09-05T18:04:53.5683750Z     /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/xcodebuild -project App.xcodeproj -resolvePackageDependencies
+2026-09-05T18:04:53.5684290Z 
+2026-09-05T18:04:53.5684520Z User defaults from command line:
+2026-09-05T18:04:53.5684990Z     IDEPackageSupportUseBuiltinSCM = YES
+2026-09-05T18:04:53.5685350Z 
+2026-09-05T18:05:01.4524370Z Resolve Package Graph
+2026-09-05T18:05:04.6841210Z 
+2026-09-05T18:05:04.6843510Z Fetching from https://github.com/capacitor-community/text-to-speech.git (cached)
+2026-09-05T18:05:05.0997320Z 
+2026-09-05T18:05:05.3858550Z Fetching from https://github.com/ionic-team/capacitor-swift-pm.git (cached)
+2026-09-05T18:05:05.7058420Z 
+2026-09-05T18:05:06.0062680Z Creating working copy of package ‘text-to-speech’
+2026-09-05T18:05:06.0407270Z 
+2026-09-05T18:05:06.0407970Z Checking out master (2ef4732) of package ‘text-to-speech’
+2026-09-05T18:05:06.0699680Z 
+2026-09-05T18:05:06.0851690Z Creating working copy of package ‘capacitor-swift-pm’
+2026-09-05T18:05:06.1080880Z 
+2026-09-05T18:05:06.1081720Z Checking out 8.5.1 of package ‘capacitor-swift-pm’
+2026-09-05T18:05:06.1209970Z 
+2026-09-05T18:05:06.8982560Z 
+2026-09-05T18:05:06.8984420Z Resolved source packages:
+2026-09-05T18:05:06.8994120Z   capacitor-swift-pm: https://github.com/ionic-team/capacitor-swift-pm.git @ 8.5.1
+2026-09-05T18:05:06.9015680Z   CapacitorCommunityTextToSpeech: https://github.com/capacitor-community/text-to-speech.git @ master (2ef4732)
+2026-09-05T18:05:06.9026480Z   CapApp-SPM: /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM @ local
+2026-09-05T18:05:06.9031060Z 
+2026-09-05T18:05:06.9050890Z resolved source packages: capacitor-swift-pm, CapacitorCommunityTextToSpeech, CapApp-SPM
+2026-09-05T18:05:06.9430840Z ##[group]Run plutil -lint ios/App/App.xcodeproj/project.pbxproj || true
+2026-09-05T18:05:06.9431480Z [36;1mplutil -lint ios/App/App.xcodeproj/project.pbxproj || true[0m
+2026-09-05T18:05:06.9432120Z [36;1mxcodebuild -list -project ios/App/App.xcodeproj 2>&1 | tee diag_list.log || true[0m
+2026-09-05T18:05:06.9432570Z [36;1mcd ios/App/CapApp-SPM[0m
+2026-09-05T18:05:06.9433010Z [36;1mswift package resolve 2>&1 | tee ../../diag_swift.log | tail -5 || true[0m
+2026-09-05T18:05:06.9761160Z shell: /bin/bash -e {0}
+2026-09-05T18:05:06.9761640Z ##[endgroup]
+2026-09-05T18:05:07.0536780Z ios/App/App.xcodeproj/project.pbxproj: OK
+2026-09-05T18:05:07.9474350Z Command line invocation:
+2026-09-05T18:05:07.9477150Z     /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/xcodebuild -list -project ios/App/App.xcodeproj
+2026-09-05T18:05:07.9477780Z 
+2026-09-05T18:05:07.9478130Z User defaults from command line:
+2026-09-05T18:05:07.9478680Z     IDEPackageSupportUseBuiltinSCM = YES
+2026-09-05T18:05:07.9479930Z 
+2026-09-05T18:05:08.2251630Z Resolve Package Graph
+2026-09-05T18:05:09.0848250Z 
+2026-09-05T18:05:09.0948710Z 
+2026-09-05T18:05:09.1050440Z Resolved source packages:
+2026-09-05T18:05:09.1151070Z   CapacitorCommunityTextToSpeech: https://github.com/capacitor-community/text-to-speech.git @ master (2ef4732)
+2026-09-05T18:05:09.1252090Z   CapApp-SPM: /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM @ local
+2026-09-05T18:05:09.1352990Z   capacitor-swift-pm: https://github.com/ionic-team/capacitor-swift-pm.git @ 8.5.1
+2026-09-05T18:05:09.1453740Z 
+2026-09-05T18:05:09.1554830Z Information about project "App":
+2026-09-05T18:05:09.1655300Z     Targets:
+2026-09-05T18:05:09.1752920Z         App
+2026-09-05T18:05:09.1853980Z 
+2026-09-05T18:05:09.1940240Z     Build Configurations:
+2026-09-05T18:05:09.1982890Z         Debug
+2026-09-05T18:05:09.2073940Z         Release
+2026-09-05T18:05:09.2147030Z 
+2026-09-05T18:05:09.2210540Z     If no build configuration is specified and -scheme is not passed then "Release" is used.
+2026-09-05T18:05:09.2231780Z 
+2026-09-05T18:05:09.2232470Z     Schemes:
+2026-09-05T18:05:09.2247810Z         App
+2026-09-05T18:05:09.2248040Z 
+2026-09-05T18:05:09.7879270Z warning: 'capapp-spm': /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/Package.swift:15:10: warning: 'package(name:url:branch:)' is deprecated: use package(url:branch:) instead
+2026-09-05T18:05:09.7889620Z         .package(name: "CapacitorCommunityTextToSpeech", url: "https://github.com/capacitor-community/text-to-speech.git", branch: "master")
+2026-09-05T18:05:09.7890540Z          ^
+2026-09-05T18:05:09.7925230Z ##[group]Run set -o pipefail
+2026-09-05T18:05:09.7925670Z [36;1mset -o pipefail[0m
+2026-09-05T18:05:09.7925900Z [36;1mcd ios/App[0m
+2026-09-05T18:05:09.7926300Z [36;1mxcodebuild -project App.xcodeproj -target App \[0m
+2026-09-05T18:05:09.7926680Z [36;1m  -configuration Release -sdk iphoneos \[0m
+2026-09-05T18:05:09.7927090Z [36;1m  -clonedSourcePackagesDirPath "$GITHUB_WORKSPACE/spm" \[0m
+2026-09-05T18:05:09.7927480Z [36;1m  CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \[0m
+2026-09-05T18:05:09.7927820Z [36;1m  2>&1 | tee ../../xcodebuild.log[0m
+2026-09-05T18:05:09.7928320Z [36;1mAPP_PATH=$(find "$GITHUB_WORKSPACE/ios" -type d -name "App.app" -path "*Release-iphoneos*" | head -1)[0m
+2026-09-05T18:05:09.7928820Z [36;1mecho "APP_PATH=$APP_PATH"[0m
+2026-09-05T18:05:09.7929070Z [36;1mtest -n "$APP_PATH"[0m
+2026-09-05T18:05:09.7929380Z [36;1mmkdir -p Payload[0m
+2026-09-05T18:05:09.7929630Z [36;1mcp -r "$APP_PATH" Payload/[0m
+2026-09-05T18:05:09.7930010Z [36;1mzip -qry shuzhai-unsigned.ipa Payload[0m
+2026-09-05T18:05:09.7986790Z shell: /bin/bash -e {0}
+2026-09-05T18:05:09.7987120Z ##[endgroup]
+2026-09-05T18:05:10.3081700Z Command line invocation:
+2026-09-05T18:05:10.3151680Z     /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/xcodebuild -project App.xcodeproj -target App -configuration Release -sdk iphoneos -clonedSourcePackagesDirPath /Users/runner/work/shuzhai/shuzhai/spm CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+2026-09-05T18:05:10.3226020Z 
+2026-09-05T18:05:10.3259030Z User defaults from command line:
+2026-09-05T18:05:10.3296720Z     IDEClonedSourcePackagesDirPathOverride = /Users/runner/work/shuzhai/shuzhai/spm
+2026-09-05T18:05:10.3338870Z     IDEPackageSupportUseBuiltinSCM = YES
+2026-09-05T18:05:10.3391300Z 
+2026-09-05T18:05:10.3441060Z Build settings from command line:
+2026-09-05T18:05:10.3506840Z     CODE_SIGNING_ALLOWED = NO
+2026-09-05T18:05:10.3520700Z     CODE_SIGNING_REQUIRED = NO
+2026-09-05T18:05:10.3536650Z     SDKROOT = iphoneos17.5
+2026-09-05T18:05:10.3573770Z 
+2026-09-05T18:05:10.4697880Z Resolve Package Graph
+2026-09-05T18:05:10.4898860Z 
+2026-09-05T18:05:10.5002030Z Fetching from https://github.com/ionic-team/capacitor-swift-pm.git (cached)
+2026-09-05T18:05:10.5042410Z 
+2026-09-05T18:05:10.5074670Z Fetching from https://github.com/capacitor-community/text-to-speech.git (cached)
+2026-09-05T18:05:10.5088540Z 
+2026-09-05T18:05:10.5117540Z Creating working copy of package ‘text-to-speech’
+2026-09-05T18:05:10.5334340Z 
+2026-09-05T18:05:10.5349690Z Checking out master (2ef4732) of package ‘text-to-speech’
+2026-09-05T18:05:10.5612520Z 
+2026-09-05T18:05:10.5776390Z Creating working copy of package ‘capacitor-swift-pm’
+2026-09-05T18:05:10.5891420Z 
+2026-09-05T18:05:10.5892290Z Checking out 8.5.1 of package ‘capacitor-swift-pm’
+2026-09-05T18:05:10.6012690Z 
+2026-09-05T18:05:11.5800920Z 
+2026-09-05T18:05:11.5809360Z Resolved source packages:
+2026-09-05T18:05:11.5810210Z   CapApp-SPM: /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM @ local
+2026-09-05T18:05:11.5811120Z   CapacitorCommunityTextToSpeech: https://github.com/capacitor-community/text-to-speech.git @ master (2ef4732)
+2026-09-05T18:05:11.5811980Z   capacitor-swift-pm: https://github.com/ionic-team/capacitor-swift-pm.git @ 8.5.1
+2026-09-05T18:05:11.5812500Z 
+2026-09-05T18:05:11.8897350Z ComputeTargetDependencyGraph
+2026-09-05T18:05:11.9465110Z warning: Building targets in manual order is deprecated - check "Parallelize build for command-line builds" in the project editor, or set DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING in any of the targets in the current build to suppress this warning
+2026-09-05T18:05:11.9473180Z note: Target dependency graph (7 targets)
+2026-09-05T18:05:11.9473610Z     Target 'App' in project 'App'
+2026-09-05T18:05:11.9474590Z         ➜ Explicit dependency on target 'CapApp-SPM' in project 'CapApp-SPM'
+2026-09-05T18:05:11.9475120Z     Target 'CapApp-SPM' in project 'CapApp-SPM'
+2026-09-05T18:05:11.9476870Z         ➜ Explicit dependency on target 'CapApp-SPM' in project 'CapApp-SPM'
+2026-09-05T18:05:11.9478160Z         ➜ Explicit dependency on target 'Capacitor' in project 'capacitor-swift-pm'
+2026-09-05T18:05:11.9478920Z         ➜ Explicit dependency on target 'Cordova' in project 'capacitor-swift-pm'
+2026-09-05T18:05:11.9479740Z         ➜ Explicit dependency on target 'CapacitorCommunityTextToSpeech' in project 'CapacitorCommunityTextToSpeech'
+2026-09-05T18:05:11.9480290Z     Target 'CapApp-SPM' in project 'CapApp-SPM'
+2026-09-05T18:05:11.9480920Z         ➜ Explicit dependency on target 'Capacitor' in project 'capacitor-swift-pm'
+2026-09-05T18:05:11.9481630Z         ➜ Explicit dependency on target 'Cordova' in project 'capacitor-swift-pm'
+2026-09-05T18:05:11.9482400Z         ➜ Explicit dependency on target 'CapacitorCommunityTextToSpeech' in project 'CapacitorCommunityTextToSpeech'
+2026-09-05T18:05:11.9483060Z     Target 'CapacitorCommunityTextToSpeech' in project 'CapacitorCommunityTextToSpeech'
+2026-09-05T18:05:11.9483840Z         ➜ Explicit dependency on target 'TextToSpeechPlugin' in project 'CapacitorCommunityTextToSpeech'
+2026-09-05T18:05:11.9484850Z         ➜ Explicit dependency on target 'Capacitor' in project 'capacitor-swift-pm'
+2026-09-05T18:05:11.9486790Z         ➜ Explicit dependency on target 'Cordova' in project 'capacitor-swift-pm'
+2026-09-05T18:05:11.9487270Z     Target 'TextToSpeechPlugin' in project 'CapacitorCommunityTextToSpeech'
+2026-09-05T18:05:11.9487850Z         ➜ Explicit dependency on target 'Capacitor' in project 'capacitor-swift-pm'
+2026-09-05T18:05:11.9488830Z         ➜ Explicit dependency on target 'Cordova' in project 'capacitor-swift-pm'
+2026-09-05T18:05:11.9489310Z     Target 'Cordova' in project 'capacitor-swift-pm' (no dependencies)
+2026-09-05T18:05:11.9489780Z     Target 'Capacitor' in project 'capacitor-swift-pm' (no dependencies)
+2026-09-05T18:05:11.9490020Z 
+2026-09-05T18:05:11.9490140Z GatherProvisioningInputs
+2026-09-05T18:05:11.9490300Z 
+2026-09-05T18:05:11.9538990Z CreateBuildDescription
+2026-09-05T18:05:12.0395370Z 
+2026-09-05T18:05:12.0446400Z ExecuteExternalTool /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -v
+2026-09-05T18:05:12.1069280Z 
+2026-09-05T18:05:12.1083350Z ExecuteExternalTool /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/runner/work/shuzhai/shuzhai/ios/App/App/Assets.xcassets
+2026-09-05T18:05:13.5581660Z 
+2026-09-05T18:05:13.5686040Z ExecuteExternalTool /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk -x c -c /dev/null
+2026-09-05T18:05:13.5785220Z 
+2026-09-05T18:05:13.5896250Z ExecuteExternalTool /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/ibtool --version --output-format xml1
+2026-09-05T18:05:13.6005290Z 
+2026-09-05T18:05:13.6061940Z ExecuteExternalTool /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+2026-09-05T18:05:13.6065760Z 
+2026-09-05T18:05:13.6072840Z ExecuteExternalTool /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+2026-09-05T18:05:13.6103100Z 
+2026-09-05T18:05:13.6644730Z Build description signature: c161647f3cb643f440deb5f13e322ec5
+2026-09-05T18:05:13.6758580Z Build description path: /Users/runner/work/shuzhai/shuzhai/ios/App/build/XCBuildData/c161647f3cb643f440deb5f13e322ec5.xcbuilddata
+2026-09-05T18:05:13.6871020Z ClangStatCache /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/com.apple.DeveloperTools/15.4-15F31d/Xcode/SDKStatCaches.noindex/iphoneos17.5-21F77-f0fa7969d082b13145125136a829df3a.sdkstatcache
+2026-09-05T18:05:13.6973230Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:13.7026130Z     /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk -o /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/com.apple.DeveloperTools/15.4-15F31d/Xcode/SDKStatCaches.noindex/iphoneos17.5-21F77-f0fa7969d082b13145125136a829df3a.sdkstatcache
+2026-09-05T18:05:14.7483550Z 
+2026-09-05T18:05:14.7484160Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build
+2026-09-05T18:05:14.7484760Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7485440Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build
+2026-09-05T18:05:14.7485790Z 
+2026-09-05T18:05:14.7486080Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/ios/App/build
+2026-09-05T18:05:14.7486550Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7487060Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/ios/App/build
+2026-09-05T18:05:14.7489380Z 
+2026-09-05T18:05:14.7489730Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos
+2026-09-05T18:05:14.7490240Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7490760Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos
+2026-09-05T18:05:14.7491090Z 
+2026-09-05T18:05:14.7492020Z ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework /Users/runner/work/shuzhai/shuzhai/spm/checkouts/capacitor-swift-pm/build/Release-iphoneos/Cordova.framework ios
+2026-09-05T18:05:14.7492980Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7494160Z     builtin-process-xcframework --xcframework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework --platform ios --target-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/capacitor-swift-pm/build/Release-iphoneos
+2026-09-05T18:05:14.7495980Z /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework:1:1: note: The identity of “Cordova.xcframework” is not recorded in your project.
+2026-09-05T18:05:14.7496520Z 
+2026-09-05T18:05:14.7497330Z ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework /Users/runner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos/Cordova.framework ios
+2026-09-05T18:05:14.7498500Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7499640Z     builtin-process-xcframework --xcframework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework --platform ios --target-path /Users/runner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos
+2026-09-05T18:05:14.7501360Z /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework:1:1: note: The identity of “Cordova.xcframework” is not recorded in your project.
+2026-09-05T18:05:14.7502010Z 
+2026-09-05T18:05:14.7502960Z ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework /Users/runner/work/shuzhai/shuzhai/spm/checkouts/capacitor-swift-pm/build/Release-iphoneos/Capacitor.framework ios
+2026-09-05T18:05:14.7503920Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7505100Z     builtin-process-xcframework --xcframework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework --platform ios --target-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/capacitor-swift-pm/build/Release-iphoneos
+2026-09-05T18:05:14.7507020Z /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework:1:1: note: The identity of “Capacitor.xcframework” is not recorded in your project.
+2026-09-05T18:05:14.7507600Z 
+2026-09-05T18:05:14.7508450Z ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework /Users/runner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos/Capacitor.framework ios
+2026-09-05T18:05:14.7509270Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7510270Z     builtin-process-xcframework --xcframework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework --platform ios --target-path /Users/runner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos
+2026-09-05T18:05:14.7511790Z /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework:1:1: note: The identity of “Capacitor.xcframework” is not recorded in your project.
+2026-09-05T18:05:14.7512440Z 
+2026-09-05T18:05:14.7512860Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos
+2026-09-05T18:05:14.7513400Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7514200Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos
+2026-09-05T18:05:14.7514600Z 
+2026-09-05T18:05:14.7515120Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/EagerLinkingTBDs/Release-iphoneos
+2026-09-05T18:05:14.7526470Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7527180Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/EagerLinkingTBDs/Release-iphoneos
+2026-09-05T18:05:14.7527630Z 
+2026-09-05T18:05:14.7528040Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos/PackageFrameworks
+2026-09-05T18:05:14.7528710Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7529480Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos/PackageFrameworks
+2026-09-05T18:05:14.7529870Z 
+2026-09-05T18:05:14.7530850Z ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos/Cordova.framework ios
+2026-09-05T18:05:14.7531750Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7532860Z     builtin-process-xcframework --xcframework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework --platform ios --target-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos
+2026-09-05T18:05:14.7534520Z /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework:1:1: note: The identity of “Cordova.xcframework” is not recorded in your project.
+2026-09-05T18:05:14.7535230Z 
+2026-09-05T18:05:14.7536150Z ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos/Capacitor.framework ios
+2026-09-05T18:05:14.7537110Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7538250Z     builtin-process-xcframework --xcframework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework --platform ios --target-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos
+2026-09-05T18:05:14.7540330Z /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework:1:1: note: The identity of “Capacitor.xcframework” is not recorded in your project.
+2026-09-05T18:05:14.7540910Z 
+2026-09-05T18:05:14.7541420Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos/PackageFrameworks
+2026-09-05T18:05:14.7542500Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7543200Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos/PackageFrameworks
+2026-09-05T18:05:14.7543670Z 
+2026-09-05T18:05:14.7544080Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/ios/App/build/EagerLinkingTBDs/Release-iphoneos
+2026-09-05T18:05:14.7544600Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7545330Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/ios/App/build/EagerLinkingTBDs/Release-iphoneos
+2026-09-05T18:05:14.7545720Z 
+2026-09-05T18:05:14.7546040Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build
+2026-09-05T18:05:14.7546530Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7547030Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build
+2026-09-05T18:05:14.7547350Z 
+2026-09-05T18:05:14.7547760Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build/Release-iphoneos
+2026-09-05T18:05:14.7548470Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7549040Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build/Release-iphoneos
+2026-09-05T18:05:14.7549400Z 
+2026-09-05T18:05:14.7550450Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build/EagerLinkingTBDs/Release-iphoneos
+2026-09-05T18:05:14.7551280Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7551920Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build/EagerLinkingTBDs/Release-iphoneos
+2026-09-05T18:05:14.7552340Z 
+2026-09-05T18:05:14.7553210Z ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build/Release-iphoneos/Cordova.framework ios
+2026-09-05T18:05:14.7554050Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7555080Z     builtin-process-xcframework --xcframework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework --platform ios --target-path /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build/Release-iphoneos
+2026-09-05T18:05:14.7556680Z /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework:1:1: note: The identity of “Cordova.xcframework” is not recorded in your project.
+2026-09-05T18:05:14.7557210Z 
+2026-09-05T18:05:14.7558100Z ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build/Release-iphoneos/Capacitor.framework ios
+2026-09-05T18:05:14.7558930Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7560120Z     builtin-process-xcframework --xcframework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework --platform ios --target-path /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build/Release-iphoneos
+2026-09-05T18:05:14.7561690Z /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework:1:1: note: The identity of “Capacitor.xcframework” is not recorded in your project.
+2026-09-05T18:05:14.7562380Z 
+2026-09-05T18:05:14.7562860Z CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build/Release-iphoneos/PackageFrameworks
+2026-09-05T18:05:14.7563490Z     cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj
+2026-09-05T18:05:14.7564100Z     builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM/build/Release-iphoneos/PackageFrameworks
+2026-09-05T18:05:14.7564510Z 
+2026-09-05T18:05:14.7566370Z WriteAuxiliaryFile /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/TextToSpeechPlugin.modulemap (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:14.7567480Z     cd /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech
+2026-09-05T18:05:14.7568420Z     write-file /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/TextToSpeechPlugin.modulemap
+2026-09-05T18:05:14.7569030Z 
+2026-09-05T18:05:14.7570740Z Copy /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/GeneratedModuleMaps-iphoneos/TextToSpeechPlugin.modulemap /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/TextToSpeechPlugin.modulemap (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:14.7572200Z     cd /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech
+2026-09-05T18:05:14.7574520Z     builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/TextToSpeechPlugin.modulemap /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/GeneratedModuleMaps-iphoneos
+2026-09-05T18:05:14.7576210Z 
+2026-09-05T18:05:14.7577470Z WriteAuxiliaryFile /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.LinkFileList (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:14.7578650Z     cd /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech
+2026-09-05T18:05:14.7579660Z     write-file /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.LinkFileList
+2026-09-05T18:05:14.7580340Z 
+2026-09-05T18:05:14.7581680Z WriteAuxiliaryFile /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin_const_extract_protocols.json (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:14.7582860Z     cd /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech
+2026-09-05T18:05:14.7583970Z     write-file /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin_const_extract_protocols.json
+2026-09-05T18:05:14.7584940Z 
+2026-09-05T18:05:14.7586360Z WriteAuxiliaryFile /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.SwiftFileList (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:14.7587780Z     cd /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech
+2026-09-05T18:05:14.7588820Z     write-file /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.SwiftFileList
+2026-09-05T18:05:14.7589510Z 
+2026-09-05T18:05:14.7591140Z WriteAuxiliaryFile /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-OutputFileMap.json (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:14.7592310Z     cd /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech
+2026-09-05T18:05:14.7593310Z     write-file /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-OutputFileMap.json
+2026-09-05T18:05:14.7594020Z 
+2026-09-05T18:05:14.7594690Z SwiftDriver TextToSpeechPlugin normal arm64 com.apple.xcode.tools.swift.compiler (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:14.7595390Z     cd /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech
+2026-09-05T18:05:14.7610270Z     builtin-SwiftDriver -- /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name TextToSpeechPlugin -O -whole-module-optimization -enforce-exclusivity\=checked @/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.SwiftFileList -DSWIFT_PACKAGE -DXcode -sdk /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk -target arm64-apple-ios15.0 -g -Xfrontend -serialize-debugging-options -suppress-warnings -swift-version 5 -I /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos -I /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib -F /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos -F /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/Library/Frameworks -F /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/Developer/Library/Frameworks -c -num-threads 3 -Xcc -ivfsstatcache -Xcc /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/com.apple.DeveloperTools/15.4-15F31d/Xcode/SDKStatCaches.noindex/iphoneos17.5-21F77-f0fa7969d082b13145125136a829df3a.sdkstatcache -output-file-map /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.swiftmodule -validate-clang-modules-once -clang-build-session-file /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xfrontend -package-name -Xfrontend text_to_speech -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin_const_extract_protocols.json -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos/include -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources -Xcc -DSWIFT_PACKAGE -emit-objc-header -emit-objc-header-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-Swift.h -working-directory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech -no-emit-module-separately-wmo
+2026-09-05T18:05:14.7851930Z 
+2026-09-05T18:05:14.7865560Z SwiftDriver\ Compilation TextToSpeechPlugin normal arm64 com.apple.xcode.tools.swift.compiler (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:14.7866350Z     cd /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech
+2026-09-05T18:05:14.7881680Z     builtin-Swift-Compilation -- /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name TextToSpeechPlugin -O -whole-module-optimization -enforce-exclusivity\=checked @/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.SwiftFileList -DSWIFT_PACKAGE -DXcode -sdk /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk -target arm64-apple-ios15.0 -g -Xfrontend -serialize-debugging-options -suppress-warnings -swift-version 5 -I /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos -I /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib -F /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos -F /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/Library/Frameworks -F /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/Developer/Library/Frameworks -c -num-threads 3 -Xcc -ivfsstatcache -Xcc /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/com.apple.DeveloperTools/15.4-15F31d/Xcode/SDKStatCaches.noindex/iphoneos17.5-21F77-f0fa7969d082b13145125136a829df3a.sdkstatcache -output-file-map /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.swiftmodule -validate-clang-modules-once -clang-build-session-file /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xfrontend -package-name -Xfrontend text_to_speech -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin_const_extract_protocols.json -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos/include -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources -Xcc -DSWIFT_PACKAGE -emit-objc-header -emit-objc-header-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-Swift.h -working-directory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech -no-emit-module-separately-wmo
+2026-09-05T18:05:14.7894540Z 
+2026-09-05T18:05:14.7896500Z SwiftCompile normal arm64 Compiling\ TextToSpeech.swift,\ TextToSpeechPlugin.swift /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeech.swift /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:14.7898120Z     cd /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech
+2026-09-05T18:05:14.7927520Z     builtin-swiftTaskExecution -- /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeech.swift /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift -emit-module-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.swiftmodule -emit-module-doc-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.swiftdoc -emit-module-source-info-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.swiftsourceinfo -emit-dependencies-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-master.d -emit-const-values-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-master.swiftconstvalues -serialize-diagnostics-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-master.dia -emit-objc-header-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-Swift.h -emit-abi-descriptor-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.abi.json -target arm64-apple-ios15.0 -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk -I /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos -I /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib -F /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos -F /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/Library/Frameworks -F /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/Developer/Library/Frameworks -no-color-diagnostics -g -suppress-warnings -swift-version 5 -enforce-exclusivity\=checked -O -D SWIFT_PACKAGE -D Xcode -serialize-debugging-options -package-name text_to_speech -const-gather-protocols-file /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin_const_extract_protocols.json -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech -resource-dir /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift -Xcc -ivfsstatcache -Xcc /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/com.apple.DeveloperTools/15.4-15F31d/Xcode/SDKStatCaches.noindex/iphoneos17.5-21F77-f0fa7969d082b13145125136a829df3a.sdkstatcache -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/swift-overrides.hmap -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos/include -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources -Xcc -DSWIFT_PACKAGE -module-name TextToSpeechPlugin -frontend-parseable-output -disable-clang-spi -target-sdk-version 17.5 -target-sdk-name iphoneos17.5 -external-plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/usr/lib/swift/host/plugins\#/Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/usr/bin/swift-plugin-server -external-plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/usr/local/lib/swift/host/plugins\#/Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/usr/bin/swift-plugin-server -external-plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins\#/Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -external-plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/local/lib/swift/host/plugins\#/Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/lib/swift/host/plugins -enable-default-cmo -num-threads 3 -o /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeech.o -o /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.o -index-unit-output-path /CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeech.o -index-unit-output-path /CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.o
+2026-09-05T18:05:14.8208110Z 
+2026-09-05T18:05:14.8208970Z CompileSwift normal arm64 (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:14.8209770Z     cd /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech
+2026-09-05T18:05:14.8236180Z     /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -c /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeech.swift /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift -emit-module-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.swiftmodule -emit-module-doc-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.swiftdoc -emit-module-source-info-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.swiftsourceinfo -emit-dependencies-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-master.d -emit-const-values-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-master.swiftconstvalues -serialize-diagnostics-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-master.dia -emit-objc-header-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin-Swift.h -emit-abi-descriptor-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.abi.json -target arm64-apple-ios15.0 -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk -I /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos -I /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib -F /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos -F /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/Library/Frameworks -F /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/Developer/Library/Frameworks -no-color-diagnostics -g -suppress-warnings -swift-version 5 -enforce-exclusivity\=checked -O -D SWIFT_PACKAGE -D Xcode -serialize-debugging-options -package-name text_to_speech -const-gather-protocols-file /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin_const_extract_protocols.json -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech -resource-dir /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift -Xcc -ivfsstatcache -Xcc /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/com.apple.DeveloperTools/15.4-15F31d/Xcode/SDKStatCaches.noindex/iphoneos17.5-21F77-f0fa7969d082b13145125136a829df3a.sdkstatcache -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/swift-overrides.hmap -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/Release-iphoneos/include -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/DerivedSources -Xcc -DSWIFT_PACKAGE -module-name TextToSpeechPlugin -frontend-parseable-output -disable-clang-spi -target-sdk-version 17.5 -target-sdk-name iphoneos17.5 -external-plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/usr/lib/swift/host/plugins\#/Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/usr/bin/swift-plugin-server -external-plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/usr/local/lib/swift/host/plugins\#/Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/usr/bin/swift-plugin-server -external-plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins\#/Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -external-plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/local/lib/swift/host/plugins\#/Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/lib/swift/host/plugins -enable-default-cmo -num-threads 3 -o /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeech.o -o /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build/CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.o -index-unit-output-path /CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeech.o -index-unit-output-path /CapacitorCommunityTextToSpeech.build/Release-iphoneos/TextToSpeechPlugin.build/Objects-normal/arm64/TextToSpeechPlugin.o
+2026-09-05T18:05:21.0478420Z /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift:26:41: error: missing argument for parameter #2 in call
+2026-09-05T18:05:21.0482960Z         let text = call.getString("text") ?? ""
+2026-09-05T18:05:21.0483920Z                                         ^
+2026-09-05T18:05:21.0484460Z                                         , <#String#>
+2026-09-05T18:05:21.0485020Z Capacitor.JSStringContainer:2:17: note: 'getString' declared here
+2026-09-05T18:05:21.0490980Z     public func getString(_ key: String, _ defaultValue: String) -> String
+2026-09-05T18:05:21.0492140Z                 ^
+2026-09-05T18:05:21.0493900Z /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift:27:41: error: missing argument for parameter #2 in call
+2026-09-05T18:05:21.0494680Z         let lang = call.getString("lang") ?? "en-US"
+2026-09-05T18:05:21.0495130Z                                         ^
+2026-09-05T18:05:21.0495470Z                                         , <#String#>
+2026-09-05T18:05:21.0495990Z Capacitor.JSStringContainer:2:17: note: 'getString' declared here
+2026-09-05T18:05:21.0496800Z     public func getString(_ key: String, _ defaultValue: String) -> String
+2026-09-05T18:05:21.0503730Z                 ^
+2026-09-05T18:05:21.0504640Z /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift:28:40: error: missing argument for parameter #2 in call
+2026-09-05T18:05:21.0505370Z         let rate = call.getFloat("rate") ?? 1.0
+2026-09-05T18:05:21.0505680Z                                        ^
+2026-09-05T18:05:21.0505960Z                                        , <#Float#>
+2026-09-05T18:05:21.0506340Z Capacitor.JSFloatContainer:2:17: note: 'getFloat' declared here
+2026-09-05T18:05:21.0506760Z     public func getFloat(_ key: String, _ defaultValue: Float) -> Float
+2026-09-05T18:05:21.0507040Z                 ^
+2026-09-05T18:05:21.0507820Z /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift:29:42: error: missing argument for parameter #2 in call
+2026-09-05T18:05:21.0508640Z         let pitch = call.getFloat("pitch") ?? 1.0
+2026-09-05T18:05:21.0508900Z                                          ^
+2026-09-05T18:05:21.0509170Z                                          , <#Float#>
+2026-09-05T18:05:21.0510080Z Capacitor.JSFloatContainer:2:17: note: 'getFloat' declared here
+2026-09-05T18:05:21.0510530Z     public func getFloat(_ key: String, _ defaultValue: Float) -> Float
+2026-09-05T18:05:21.0510810Z                 ^
+2026-09-05T18:05:21.0511660Z /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift:30:44: error: missing argument for parameter #2 in call
+2026-09-05T18:05:21.0512360Z         let volume = call.getFloat("volume") ?? 1.0
+2026-09-05T18:05:21.0512680Z                                            ^
+2026-09-05T18:05:21.0512930Z                                            , <#Float#>
+2026-09-05T18:05:21.0513380Z Capacitor.JSFloatContainer:2:17: note: 'getFloat' declared here
+2026-09-05T18:05:21.0513860Z     public func getFloat(_ key: String, _ defaultValue: Float) -> Float
+2026-09-05T18:05:21.0514160Z                 ^
+2026-09-05T18:05:21.0515010Z /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift:31:40: error: missing argument for parameter #2 in call
+2026-09-05T18:05:21.0515700Z         let voice = call.getInt("voice") ?? -1
+2026-09-05T18:05:21.0515970Z                                        ^
+2026-09-05T18:05:21.0516240Z                                        , <#Int#>
+2026-09-05T18:05:21.0516600Z Capacitor.JSIntContainer:2:17: note: 'getInt' declared here
+2026-09-05T18:05:21.0517030Z     public func getInt(_ key: String, _ defaultValue: Int) -> Int
+2026-09-05T18:05:21.0517350Z                 ^
+2026-09-05T18:05:21.0518180Z /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift:32:49: error: missing argument for parameter #2 in call
+2026-09-05T18:05:21.0519020Z         let category = call.getString("category") ?? "ambient"
+2026-09-05T18:05:21.0519360Z                                                 ^
+2026-09-05T18:05:21.0519630Z                                                 , <#String#>
+2026-09-05T18:05:21.0520030Z Capacitor.JSStringContainer:2:17: note: 'getString' declared here
+2026-09-05T18:05:21.0520490Z     public func getString(_ key: String, _ defaultValue: String) -> String
+2026-09-05T18:05:21.0520780Z                 ^
+2026-09-05T18:05:21.0521550Z /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift:33:56: error: missing argument for parameter #2 in call
+2026-09-05T18:05:21.0522270Z         let queueStrategy = call.getInt("queueStrategy") ?? 0
+2026-09-05T18:05:21.0522640Z                                                        ^
+2026-09-05T18:05:21.0523030Z                                                        , <#Int#>
+2026-09-05T18:05:21.0523420Z Capacitor.JSIntContainer:2:17: note: 'getInt' declared here
+2026-09-05T18:05:21.0523800Z     public func getInt(_ key: String, _ defaultValue: Int) -> Int
+2026-09-05T18:05:21.0524260Z                 ^
+2026-09-05T18:05:21.0525210Z /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift:37:18: error: value of type 'CAPPluginCall' has no member 'reject'
+2026-09-05T18:05:21.0525980Z             call.reject(TextToSpeechPlugin.errorUnsupportedLanguage)
+2026-09-05T18:05:21.0526260Z             ~~~~ ^~~~~~
+2026-09-05T18:05:21.0527090Z /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift:44:18: error: value of type 'CAPPluginCall' has no member 'reject'
+2026-09-05T18:05:21.0527850Z             call.reject(error.localizedDescription)
+2026-09-05T18:05:21.0528100Z             ~~~~ ^~~~~~
+2026-09-05T18:05:21.0528910Z /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift:85:41: error: missing argument for parameter #2 in call
+2026-09-05T18:05:21.0529560Z         let lang = call.getString("lang") ?? ""
+2026-09-05T18:05:21.0529840Z                                         ^
+2026-09-05T18:05:21.0530350Z                                         , <#String#>
+2026-09-05T18:05:21.0530810Z Capacitor.JSStringContainer:2:17: note: 'getString' declared here
+2026-09-05T18:05:21.0531230Z     public func getString(_ key: String, _ defaultValue: String) -> String
+2026-09-05T18:05:21.0531520Z                 ^
+2026-09-05T18:05:21.0531610Z 
+2026-09-05T18:05:21.0609190Z ** BUILD FAILED **
+2026-09-05T18:05:21.0613690Z 
+2026-09-05T18:05:21.0613800Z 
+2026-09-05T18:05:21.0614060Z The following build commands failed:
+2026-09-05T18:05:21.0614740Z 	CompileSwift normal arm64 (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:21.0617120Z 	SwiftCompile normal arm64 Compiling\ TextToSpeech.swift,\ TextToSpeechPlugin.swift /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeech.swift /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/ios/Sources/TextToSpeechPlugin/TextToSpeechPlugin.swift (in target 'TextToSpeechPlugin' from project 'CapacitorCommunityTextToSpeech')
+2026-09-05T18:05:21.0627660Z (2 failures)
+2026-09-05T18:05:21.0775940Z ##[error]Process completed with exit code 65.
+2026-09-05T18:05:21.0838540Z ##[group]Run {
+2026-09-05T18:05:21.0838760Z [36;1m{[0m
+2026-09-05T18:05:21.0838920Z [36;1m  echo "=== xcodebuild.log 全量 ==="[0m
+2026-09-05T18:05:21.0839210Z [36;1m  cat xcodebuild.log 2>/dev/null | tr '\n' '|' | fold -w 640[0m
+2026-09-05T18:05:21.0839480Z [36;1m  echo ""[0m
+2026-09-05T18:05:21.0839650Z [36;1m  echo "=== diag_list.log 全量 ==="[0m
+2026-09-05T18:05:21.0839920Z [36;1m  cat diag_list.log 2>/dev/null | tr '\n' '|' | fold -w 640[0m
+2026-09-05T18:05:21.0840210Z [36;1m  echo ""[0m
+2026-09-05T18:05:21.0840390Z [36;1m  echo "=== diag_swift.log 全量 ==="[0m
+2026-09-05T18:05:21.0840690Z [36;1m  cat diag_swift.log 2>/dev/null | tr '\n' '|' | fold -w 640[0m
+2026-09-05T18:05:21.0840970Z [36;1m  echo ""[0m
+2026-09-05T18:05:21.0841160Z [36;1m  echo "=== resolve.log 尾部 ==="[0m
+2026-09-05T18:05:21.0841450Z [36;1m  tail -12 resolve.log 2>/dev/null | tr '\n' '|' | fold -w 640[0m
+2026-09-05T18:05:21.0841730Z [36;1m  echo ""[0m
+2026-09-05T18:05:21.0841970Z [36;1m} | head -14 | sed 's/^/::error::/' || true[0m
+2026-09-05T18:05:21.1052100Z shell: /bin/bash -e {0}
+2026-09-05T18:05:21.1052310Z ##[endgroup]
+2026-09-05T18:05:21.1535550Z ##[error]=== xcodebuild.log 全量 ===
+2026-09-05T18:05:21.1536900Z fold: stdout: Broken pipe
+2026-09-05T18:05:21.1540930Z ##[error]Command line invocation:|    /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/xcodebuild -project App.xcodeproj -target App -configuration Release -sdk iphoneos -clonedSourcePackagesDirPath /Users/runner/work/shuzhai/shuzhai/spm CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO||User defaults from command line:|    IDEClonedSourcePackagesDirPathOverride = /Users/runner/work/shuzhai/shuzhai/spm|    IDEPackageSupportUseBuiltinSCM = YES||Build settings from command line:|    CODE_SIGNING_ALLOWED = NO|    CODE_SIGNING_REQUIRED = NO|    SDKROOT = iphoneos17.5||Resolve Package Graph||Fetching from https://github.com/ionic-team/capac
+2026-09-05T18:05:21.1547310Z ##[error]itor-swift-pm.git (cached)||Fetching from https://github.com/capacitor-community/text-to-speech.git (cached)||Creating working copy of package ‘text-to-speech’||Checking out master (2ef4732) of package ‘text-to-speech’||Creating working copy of package ‘capacitor-swift-pm’||Checking out 8.5.1 of package ‘capacitor-swift-pm’|||Resolved source packages:|  CapApp-SPM: /Users/runner/work/shuzhai/shuzhai/ios/App/CapApp-SPM @ local|  CapacitorCommunityTextToSpeech: https://github.com/capacitor-community/text-to-speech.git @ master (2ef4732)|  capacitor-swift-pm: https://github.com/ionic-team/capacitor-swift-pm.git @ 8.5.1||ComputeTargetDe
+2026-09-05T18:05:21.1553000Z ##[error]pendencyGraph|warning: Building targets in manual order is deprecated - check "Parallelize build for command-line builds" in the project editor, or set DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING in any of the targets in the current build to suppress this warning|note: Target dependency graph (7 targets)|    Target 'App' in project 'App'|        ➜ Explicit dependency on target 'CapApp-SPM' in project 'CapApp-SPM'|    Target 'CapApp-SPM' in project 'CapApp-SPM'|        ➜ Explicit dependency on target 'CapApp-SPM' in project 'CapApp-SPM'|        ➜ Explicit dependency on target 'Capacitor' in project 'capacitor-swift-pm'|        ➜ Explic
+2026-09-05T18:05:21.1559590Z ##[error]it dependency on target 'Cordova' in project 'capacitor-swift-pm'|        ➜ Explicit dependency on target 'CapacitorCommunityTextToSpeech' in project 'CapacitorCommunityTextToSpeech'|    Target 'CapApp-SPM' in project 'CapApp-SPM'|        ➜ Explicit dependency on target 'Capacitor' in project 'capacitor-swift-pm'|        ➜ Explicit dependency on target 'Cordova' in project 'capacitor-swift-pm'|        ➜ Explicit dependency on target 'CapacitorCommunityTextToSpeech' in project 'CapacitorCommunityTextToSpeech'|    Target 'CapacitorCommunityTextToSpeech' in project 'CapacitorCommunityTextToSpeech'|        ➜ Explicit dependency on targe
+2026-09-05T18:05:21.1565920Z ##[error]t 'TextToSpeechPlugin' in project 'CapacitorCommunityTextToSpeech'|        ➜ Explicit dependency on target 'Capacitor' in project 'capacitor-swift-pm'|        ➜ Explicit dependency on target 'Cordova' in project 'capacitor-swift-pm'|    Target 'TextToSpeechPlugin' in project 'CapacitorCommunityTextToSpeech'|        ➜ Explicit dependency on target 'Capacitor' in project 'capacitor-swift-pm'|        ➜ Explicit dependency on target 'Cordova' in project 'capacitor-swift-pm'|    Target 'Cordova' in project 'capacitor-swift-pm' (no dependencies)|    Target 'Capacitor' in project 'capacitor-swift-pm' (no dependencies)||GatherProvisioningIn
+2026-09-05T18:05:21.1572280Z ##[error]puts||CreateBuildDescription||ExecuteExternalTool /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -v||ExecuteExternalTool /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/runner/work/shuzhai/shuzhai/ios/App/App/Assets.xcassets||ExecuteExternalTool /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk -x c -c /dev/null||ExecuteExternalTool /Ap
+2026-09-05T18:05:21.1578700Z ##[error]plications/Xcode_15.4.app/Contents/Developer/usr/bin/ibtool --version --output-format xml1||ExecuteExternalTool /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details||ExecuteExternalTool /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/actool --version --output-format xml1||Build description signature: c161647f3cb643f440deb5f13e322ec5|Build description path: /Users/runner/work/shuzhai/shuzhai/ios/App/build/XCBuildData/c161647f3cb643f440deb5f13e322ec5.xcbuilddata|ClangStatCache /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c
+2026-09-05T18:05:21.1584930Z ##[error]lang-stat-cache /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/com.apple.DeveloperTools/15.4-15F31d/Xcode/SDKStatCaches.noindex/iphoneos17.5-21F77-f0fa7969d082b13145125136a829df3a.sdkstatcache|    cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj|    /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk -o /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/C/
+2026-09-05T18:05:21.1590900Z ##[error]com.apple.DeveloperTools/15.4-15F31d/Xcode/SDKStatCaches.noindex/iphoneos17.5-21F77-f0fa7969d082b13145125136a829df3a.sdkstatcache||CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build|    cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj|    builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/spm/checkouts/text-to-speech/build||CreateBuildDirectory /Users/runner/work/shuzhai/shuzhai/ios/App/build|    cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj|    builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/ios/App/build||CreateBuildDirectory /Users/r
+2026-09-05T18:05:21.1597160Z ##[error]unner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos|    cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj|    builtin-create-build-directory /Users/runner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos||ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework /Users/runner/work/shuzhai/shuzhai/spm/checkouts/capacitor-swift-pm/build/Release-iphoneos/Cordova.framework ios|    cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj|    builtin-process-xcframework --xcframework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Co
+2026-09-05T18:05:21.1603440Z ##[error]rdova.xcframework --platform ios --target-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/capacitor-swift-pm/build/Release-iphoneos|/Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework:1:1: note: The identity of “Cordova.xcframework” is not recorded in your project.||ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework /Users/runner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos/Cordova.framework ios|    cd /Users/runner/work/shuzhai/shuzhai/ios/App/App.xcodeproj|    builtin-process-xcframework --xcframework /Users/run
+2026-09-05T18:05:21.1609540Z ##[error]ner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework --platform ios --target-path /Users/runner/work/shuzhai/shuzhai/ios/App/build/Release-iphoneos|/Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Cordova/Cordova.xcframework:1:1: note: The identity of “Cordova.xcframework” is not recorded in your project.||ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework /Users/runner/work/shuzhai/shuzhai/spm/checkouts/capacitor-swift-pm/build/Release-iphoneos/Capacitor.framework ios|    cd /Users/runner/work/shuzhai/shuzhai/ios/
+2026-09-05T18:05:21.1616810Z ##[error]App/App.xcodeproj|    builtin-process-xcframework --xcframework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework --platform ios --target-path /Users/runner/work/shuzhai/shuzhai/spm/checkouts/capacitor-swift-pm/build/Release-iphoneos|/Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework:1:1: note: The identity of “Capacitor.xcframework” is not recorded in your project.||ProcessXCFramework /Users/runner/work/shuzhai/shuzhai/spm/artifacts/capacitor-swift-pm/Capacitor/Capacitor.xcframework /Users/runner/work/shuzhai/shuzhai/ios/App/build/Rel
+2026-09-05T18:05:21.1620310Z /Users/runner/work/_temp/aefaab05-d46e-4a7c-90d8-08424a0067b5.sh: line 4: echo: write error: Broken pipe
+2026-09-05T18:05:21.1621050Z /Users/runner/work/_temp/aefaab05-d46e-4a7c-90d8-08424a0067b5.sh: line 5: echo: write error: Broken pipe
+2026-09-05T18:05:21.1621490Z fold: stdout: Broken pipe
+2026-09-05T18:05:21.1621990Z /Users/runner/work/_temp/aefaab05-d46e-4a7c-90d8-08424a0067b5.sh: line 7: echo: write error: Broken pipe
+2026-09-05T18:05:21.1622710Z /Users/runner/work/_temp/aefaab05-d46e-4a7c-90d8-08424a0067b5.sh: line 8: echo: write error: Broken pipe
+2026-09-05T18:05:21.1623450Z /Users/runner/work/_temp/aefaab05-d46e-4a7c-90d8-08424a0067b5.sh: line 10: echo: write error: Broken pipe
+2026-09-05T18:05:21.1624170Z /Users/runner/work/_temp/aefaab05-d46e-4a7c-90d8-08424a0067b5.sh: line 11: echo: write error: Broken pipe
+2026-09-05T18:05:21.1641340Z fold: stdout: Broken pipe
+2026-09-05T18:05:21.1642680Z /Users/runner/work/_temp/aefaab05-d46e-4a7c-90d8-08424a0067b5.sh: line 13: echo: write error: Broken pipe
+2026-09-05T18:05:21.1753150Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-05T18:05:21.1754170Z Post job cleanup.
+2026-09-05T18:05:21.4207550Z [command]/opt/homebrew/bin/git version
+2026-09-05T18:05:21.4406260Z git version 2.55.0
+2026-09-05T18:05:21.4437260Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/3a3acc27-530e-46ec-838a-0ca741d8d235/.gitconfig'
+2026-09-05T18:05:21.4438560Z Temporarily overriding HOME='/Users/runner/work/_temp/3a3acc27-530e-46ec-838a-0ca741d8d235' before making global git config changes
+2026-09-05T18:05:21.4439460Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-05T18:05:21.4440430Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/shuzhai/shuzhai
+2026-09-05T18:05:21.4526570Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-05T18:05:21.4571200Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-05T18:05:21.5230380Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-05T18:05:21.5270690Z http.https://github.com/.extraheader
+2026-09-05T18:05:21.5276690Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-09-05T18:05:21.5334070Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-05T18:05:21.5979180Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-05T18:05:21.6016550Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-05T18:05:21.6672380Z Cleaning up orphan processes
+2026-09-05T18:05:21.9689440Z Terminate orphan process: pid (10283) (ibtoold)
+2026-09-05T18:05:22.0127960Z Terminate orphan process: pid (10279) (ibtoold)
+2026-09-05T18:05:22.2315880Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

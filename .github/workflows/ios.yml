@@ -32,7 +32,7 @@ jobs:
         run: |
           cd ios/App/CapApp-SPM
           grep -n "node_modules" Package.swift || true
-          sed -i '' 's|path: "[^"]*node_modules/@capacitor-community/text-to-speech"|url: "https://github.com/capacitor-community/text-to-speech.git", branch: "master"|' Package.swift
+          sed -i '' 's|path: "[^"]*node_modules/@capacitor-community/text-to-speech"|url: "https://github.com/capacitor-community/text-to-speech.git", from: "8.0.2"|' Package.swift
           grep -n "text-to-speech" Package.swift
 
       - name: 隔离验证 SPM 图
