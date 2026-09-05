@@ -62,7 +62,9 @@ function makeIndexedDB() {
     }
     transaction(name) {
       const t = new Transaction(this.stores.get(name));
-      setTimeout(() => { if (t.oncomplete) t.oncomplete(); }, 1);
+      // Node 的 setTimeout(0) 会被钳到 1ms，用 2ms 保证 complete 晚于请求完成，
+      // 与真实 IndexedDB「先请求成功、后事务完成」的语义一致。
+      setTimeout(() => { if (t.oncomplete) t.oncomplete(); }, 2);
       return t;
     }
     close() {}

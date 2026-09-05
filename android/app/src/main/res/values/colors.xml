@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 与前端底色一致：Capacitor SystemBars 用 windowBackground 涂 decorView（状态栏/手势条留白区域），
+         不设置时 DayNight 主题默认是深灰色，这就是 v1.0「状态栏灰色」的来源 -->
+    <color name="sz_bg">#F7F7F5</color>
+</resources>

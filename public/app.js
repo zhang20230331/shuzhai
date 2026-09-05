@@ -178,7 +178,8 @@ function layout() {
   track.style.padding = `0 ${PAD}px`;
   track.style.columnWidth = (pw - PAD * 2) + "px";
   track.style.columnGap = (PAD * 2) + "px";
-  S.pages = Math.max(1, Math.round(track.scrollWidth / pw));
+  // 末页常是窄列，scrollWidth 略小于 N*pw，必须向上取整否则末页翻不到
+  S.pages = Math.max(1, Math.ceil((track.scrollWidth - 1) / pw));
   updateIndicator();
 }
 
@@ -229,7 +230,8 @@ async function flipPrev() {
   toast("已经是第一章了");
 }
 async function gotoChapter(n, opts = {}) {
-  if (S.loading) return;
+  if (S.loading || !S.book) return;
+  n = Number.isFinite(n) ? Math.max(0, Math.min(n | 0, S.book.chapters.length - 1)) : 0;
   S.loading = true;
   showLoading(true);
   try {
@@ -309,8 +311,11 @@ async function openBook(id, jump) {
     const meta = await Store.getBook(id);
     S.book = meta;
     const p = meta.progress;
-    const ch = jump ? jump.ch : (p ? Math.min(p.chapter, meta.chapters.length - 1) : 0);
-    const para = jump ? jump.p : (p ? Math.max(0, p.para | 0) : 0);
+    let ch = jump ? jump.ch : (p ? Math.min(p.chapter, meta.chapters.length - 1) : 0);
+    let para = jump ? jump.p : (p ? Math.max(0, p.para | 0) : 0);
+    // 进度数据异常时回退到第一章，绝不把非法章节号传下去
+    if (!Number.isFinite(ch) || ch < 0) ch = 0;
+    if (!Number.isFinite(para) || para < 0) para = 0;
     $("#shelf").classList.add("hidden");
     $("#reader").classList.remove("hidden");
     await gotoChapter(ch, { restorePara: para });
@@ -419,6 +424,7 @@ function applyReaderPrefs(relayout = true) {
   viewport.dataset.theme = prefs.theme;
   document.querySelectorAll(".theme-dot").forEach((d) => d.classList.toggle("active", d.dataset.theme === prefs.theme));
   $("#btnNight span:last-child").textContent = prefs.theme === "dark" ? "白天" : "夜间";
+  syncSystemBars();
   if (relayout && S.chapter) {
     layout();
     const el = track.querySelector(`.seg[data-p="${S.cur.p}"]`);
@@ -703,6 +709,34 @@ async function openStore() {
 function closeStore() { $("#storeSheet").classList.add("hidden"); $("#storeMask").classList.add("hidden"); }
 $("#btnStore").addEventListener("click", openStore);
 $("#storeMask").addEventListener("click", closeStore);
+
+/* ---------------- 原生壳适配（Capacitor App 内生效，浏览器自动跳过） ---------------- */
+const Cap = window.Capacitor?.Plugins || null;
+
+/* 状态栏/手势条与应用主题同色同明暗（Android 由内置 SystemBars 插件处理，iOS 走系统默认） */
+function syncSystemBars() {
+  const dark = prefs.theme === "dark";
+  try { Cap?.SystemBars?.setStyle?.({ style: dark ? "DARK" : "LIGHT" }); } catch {}
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", dark ? "#121212" : "#f7f7f5");
+}
+
+/* Android 物理返回键 / 侧滑手势：MainActivity 经此钩子询问是否已消费。
+   返回 true = 已处理（关弹层/回书架/提示再按一次退出）；false = 交给系统退出应用 */
+let lastBackAt = 0;
+window.__szBack = () => {
+  if (!$("#storeSheet").classList.contains("hidden")) { closeStore(); return true; }
+  if (!$("#voiceSheet").classList.contains("hidden")) { closeVoice(); return true; }
+  if (!$("#toc").classList.contains("hidden")) { closeToc(); return true; }
+  if (!$("#settingsSheet").classList.contains("hidden")) { $("#settingsSheet").classList.add("hidden"); return true; }
+  if (S.menuOpen) { toggleMenu(false); return true; }
+  if (S.book) { backToShelf(); return true; }
+  const now = Date.now();
+  if (now - lastBackAt < 2000) return false;
+  lastBackAt = now;
+  toast("再按一次退出");
+  return true;
+};
 
 /* ---------------- 启动 ---------------- */
 applyReaderPrefs(false);

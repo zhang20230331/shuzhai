@@ -2,8 +2,8 @@
   --bg: #f7f7f5; --panel: #ffffff; --fg: #1a1a1a; --muted: #8a8a86;
   --accent: #4f46e5; --accent-soft: #eef0fe; --border: #e6e6e2;
   --reader-bg: #ffffff; --reader-fg: #262626;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px));
+  --safe-bottom: max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px));
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; }

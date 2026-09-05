@@ -68,10 +68,15 @@
 
     function tx(store, mode, fn) {
       return db().then((d) => new Promise((resolve, reject) => {
+        let result;
         const t = d.transaction(store, mode);
-        const out = fn(t.objectStore(store));
-        t.oncomplete = () => resolve(out && out.result !== undefined ? out.result : out);
+        const req = fn(t.objectStore(store));
+        // 缺失键的 get 结果是 undefined，必须原样 resolve；
+        // 旧版把整个 IDBRequest 当结果 resolve，导致进度读取成垃圾对象 → 章节号 NaN → 白屏
+        if (req) req.onsuccess = () => { result = req.result; };
+        t.oncomplete = () => resolve(result);
         t.onerror = () => reject(t.error);
+        t.onabort = () => reject(t.error || new Error("数据库事务中止"));
       }));
     }
     const idbPut = (store, val, key) => tx(store, "readwrite", (s) => (key !== undefined ? s.put(val, key) : s.put(val)));
@@ -114,6 +119,7 @@
     };
     const getChapter = async (id, n) => {
       const b = await idbGet(LN.books, id);
+      if (!b) throw new Error("书籍不存在");
       const ch = b.chapters[n];
       if (!ch) throw new Error("章节不存在");
       return { index: n, title: ch.title, paras: b.paras.slice(ch.start, ch.start + ch.count) };

@@ -13,6 +13,12 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- 窗口/状态栏与应用底色一致，图标用深色（浅色背景）；夜间主题由前端经 SystemBars 插件动态切换 -->
+        <item name="android:windowBackground">@color/sz_bg</item>
+        <item name="android:statusBarColor">@color/sz_bg</item>
+        <item name="android:navigationBarColor">@color/sz_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 
 
