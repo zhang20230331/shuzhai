@@ -8,19 +8,13 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: 清理 SPM 缓存
-        run: |
-          defaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM YES
-          rm -rf ~/Library/Caches/org.swift.swiftpm ~/Library/org.swift.swiftpm || true
-          rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm || true
 
       - name: 安装依赖
         run: set -o pipefail; npm ci 2>&1 | tee npm.log
@@ -31,41 +25,23 @@ jobs:
       - name: 插件依赖改用远程 SPM
         run: |
           cd ios/App/CapApp-SPM
-          grep -n "node_modules" Package.swift || true
           sed -i '' 's|path: "[^"]*node_modules/@capacitor-community/text-to-speech"|url: "https://github.com/capacitor-community/text-to-speech.git", from: "8.0.2"|' Package.swift
           grep -n "text-to-speech" Package.swift
 
-      - name: 隔离验证 SPM 图
-        run: |
-          cd ios/App/CapApp-SPM
-          swift --version > ../../diag_swift.log 2>&1 || true
-          swift package dump-package >> ../../diag_swift.log 2>&1 || true
-          swift package resolve >> ../../diag_swift.log 2>&1 || true
-          tail -5 ../../diag_swift.log
-
-      - name: 解析 SPM 依赖
+      - name: xcodebuild（未签名设备构建）
         run: |
           set -o pipefail
-          cd ios/App
-          xcodebuild -project App.xcodeproj -resolvePackageDependencies 2>&1 | tee ../../resolve.log
-
-      - name: 分层诊断
-        run: |
-          plutil -lint ios/App/App.xcodeproj/project.pbxproj || true
-          xcodebuild -list -project ios/App/App.xcodeproj 2>&1 | tee diag_list.log || true
-          cd ios/App/CapApp-SPM
-          swift package resolve 2>&1 | tee ../../diag_swift.log | tail -5 || true
-
-      - name: 编译未签名 IPA
-        run: |
-          set -o pipefail
-          cd ios/App
-          xcodebuild -project App.xcodeproj -target App \
-            -configuration Release -sdk iphoneos \
-            -clonedSourcePackagesDirPath "$GITHUB_WORKSPACE/spm" \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
-            2>&1 | tee ../../xcodebuild.log
-          APP_PATH=$(find "$GITHUB_WORKSPACE/ios" -type d -name "App.app" -path "*Release-iphoneos*" | head -1)
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -destination 'generic/platform=iOS' \
+            -configuration Debug \
+            -allowProvisioningUpdates=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build | tee xcodebuild.log
+          APP_PATH=$(find "$GITHUB_WORKSPACE" -type d -name "App.app" -path "*Debug-iphoneos*" | head -1)
           echo "APP_PATH=$APP_PATH"
           test -n "$APP_PATH"
           mkdir -p Payload
@@ -86,13 +62,7 @@ jobs:
             echo "=== xcodebuild.log 全量 ==="
             cat xcodebuild.log 2>/dev/null | tr '\n' '|' | fold -w 640
             echo ""
-            echo "=== diag_list.log 全量 ==="
-            cat diag_list.log 2>/dev/null | tr '\n' '|' | fold -w 640
-            echo ""
-            echo "=== diag_swift.log 全量 ==="
-            cat diag_swift.log 2>/dev/null | tr '\n' '|' | fold -w 640
-            echo ""
-            echo "=== resolve.log 尾部 ==="
-            tail -12 resolve.log 2>/dev/null | tr '\n' '|' | fold -w 640
+            echo "=== sync.log 尾部 ==="
+            tail -10 sync.log 2>/dev/null | tr '\n' '|' | fold -w 640
             echo ""
           } | head -14 | sed 's/^/::error::/' || true
