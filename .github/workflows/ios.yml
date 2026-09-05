@@ -22,11 +22,15 @@ jobs:
       - name: 同步 Web 资源与插件
         run: set -o pipefail; npx cap sync ios 2>&1 | tee sync.log
 
+      - name: 解析 SPM 依赖
+        run: set -o pipefail; xcodebuild -project ios/App/App.xcodeproj -scheme App -resolvePackageDependencies 2>&1 | tee resolve.log
+
       - name: 编译未签名 IPA
         run: |
           set -o pipefail
           xcodebuild -project ios/App/App.xcodeproj -scheme App \
-            -configuration Release -sdk iphoneos \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -disableAutomaticPackageResolution \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             -derivedDataPath build 2>&1 | tee xcodebuild.log
           mkdir -p Payload
@@ -44,10 +48,10 @@ jobs:
         if: failure()
         run: |
           {
-            for f in xcodebuild.log sync.log npm.log; do
+            for f in resolve.log xcodebuild.log sync.log npm.log; do
               [ -f "$f" ] || continue
               echo "===== $f ====="
-              grep -iE "error:|Error:|FAILURE|Exception|Exit code|\\*\\* BUILD" "$f" | tail -6
+              grep -iE "error:|Error:|FAILURE|Exception|Exit code|\\*\\* BUILD|crash" "$f" | tail -6
               tail -18 "$f"
             done
           } 2>/dev/null | fold -w 640 | head -10 | sed 's/^/::error::/' || true
