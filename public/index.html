@@ -17,7 +17,7 @@
 <!-- 书架 -->
 <div id="shelf" class="page">
   <header class="topbar">
-    <h1>书斋 <span class="ver">v1.2</span></h1>
+    <h1>书斋 <span class="ver">v1.3</span></h1>
     <div class="topbar-actions">
       <button id="btnStore" class="ghost-btn">名著书城</button>
       <button id="btnImportUrl" class="ghost-btn">链接导入</button>
@@ -39,6 +39,10 @@
     <div id="track"></div>
   </main>
 
+  <!-- 常显小标识（呼出菜单时自动隐藏） -->
+  <div id="readerMini" class="mini-top"><span id="miniChapter"></span></div>
+  <div id="pageMini" class="mini-bottom"><span id="miniPage"></span></div>
+
   <!-- 顶部菜单（点屏幕中间呼出） -->
   <header id="readerTop" class="reader-top">
     <button id="btnBack" class="icon-btn" title="返回书架">
@@ -53,6 +57,7 @@
     <div class="menu-row menu-chapter">
       <button id="btnPrevChapter" class="menu-btn">上一章</button>
       <input type="range" id="pageSlider" min="1" max="1" value="1" step="1">
+      <span class="page-text" id="pageText">1/1</span>
       <button id="btnNextChapter" class="menu-btn">下一章</button>
     </div>
     <div class="menu-row menu-actions">
@@ -85,7 +90,7 @@
     </button>
     <div class="player-info">
       <div class="player-chapter" id="playerChapter"></div>
-      <div class="player-sub">听书中</div>
+      <div class="player-sub" id="playerSub">听书中</div>
     </div>
     <button id="btnVoice" class="voice-chip"><span id="voiceShort">晓晓</span>
       <svg viewBox="0 0 24 24" class="svg-ic caret"><path d="M7 10l5 5 5-5z"/></svg>
@@ -95,22 +100,36 @@
     </button>
   </div>
 
-  <!-- 音色/语速 弹窗 -->
+  <!-- 音色/语速/定时 弹窗 -->
   <div id="voiceMask" class="mask hidden"></div>
   <div id="voiceSheet" class="sheet hidden">
     <div class="sheet-head">朗读音色</div>
     <div id="voiceGrid" class="voice-grid"></div>
     <div class="sheet-row speed-row">
       <span>语速</span>
-      <input type="range" id="rateRange" min="-50" max="100" step="10" value="0">
-      <span id="rateLabel">0%</span>
+      <input type="range" id="rateRange" min="50" max="200" step="10" value="100">
+      <span id="rateLabel">1.0x</span>
+    </div>
+    <div class="sheet-row timer-row">
+      <span>定时关闭</span>
+      <div class="timer-chips" id="timerChips">
+        <button data-min="0" class="active">不限</button>
+        <button data-min="5">5分</button>
+        <button data-min="10">10分</button>
+        <button data-min="20">20分</button>
+        <button data-min="30">30分</button>
+        <button data-min="60">60分</button>
+      </div>
     </div>
   </div>
 
   <!-- 目录抽屉 -->
   <div id="tocMask" class="mask hidden"></div>
   <aside id="toc" class="drawer hidden">
-    <div class="drawer-head">目录 <span id="tocCount"></span></div>
+    <div class="drawer-head">
+      <span>目录 <span id="tocCount"></span></span>
+      <button id="tocOrder" class="toc-order">倒序</button>
+    </div>
     <div id="tocList"></div>
   </aside>
 

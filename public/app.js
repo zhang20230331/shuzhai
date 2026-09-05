@@ -30,8 +30,12 @@ const prefs = {
   set theme(v) { localStorage.setItem("sz_theme", v); },
   get voice() { return localStorage.getItem("sz_voice") || "zh-CN-XiaoxiaoNeural"; },
   set voice(v) { localStorage.setItem("sz_voice", v); },
-  get rate() { return +localStorage.getItem("sz_rate") || 0; },
+  // 语速倍数：50~200，100 = 1.0x（旧版存的是 -50~100 的百分比，自动校正）
+  get rate() { const v = +localStorage.getItem("sz_rate"); return v >= 50 && v <= 200 ? v : 100; },
   set rate(v) { localStorage.setItem("sz_rate", v); },
+  // 离线模式使用的系统音色名（getVoices 列表里的 name）
+  get nativeVoice() { return localStorage.getItem("sz_native_voice") || ""; },
+  set nativeVoice(v) { localStorage.setItem("sz_native_voice", v); },
 };
 
 /* ---------------- 工具 ---------------- */
@@ -58,7 +62,6 @@ async function api(path, opts) {
 const Local = window.LocalAdapter;
 const LOCAL_MODE = Local.enabled;
 const SERVER = localStorage.getItem("sz_server") || (LOCAL_MODE ? "http://192.168.0.205:9324" : location.origin);
-let serverAlive = !LOCAL_MODE;
 
 const Store = LOCAL_MODE ? Local : {
   listBooks: () => api("/api/books"),
@@ -69,15 +72,20 @@ const Store = LOCAL_MODE ? Local : {
   deleteBook: (id) => api(`/api/books/${id}`, { method: "DELETE" }),
 };
 
-async function checkServer() {
+let serverAlive = !LOCAL_MODE;
+let serverCheckedAt = 0;
+async function checkServer(force = false) {
   if (!LOCAL_MODE) return true;
+  // 5 分钟内复用上次结果：避免每次点听书都干等 2.5 秒探测
+  if (!force && Date.now() - serverCheckedAt < 5 * 60 * 1000) return serverAlive;
   try {
     const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 2500);
+    const t = setTimeout(() => ctl.abort(), 1500);
     const r = await fetch(`${SERVER}/health`, { signal: ctl.signal });
     clearTimeout(t);
     serverAlive = r.ok;
   } catch { serverAlive = false; }
+  serverCheckedAt = Date.now();
   return serverAlive;
 }
 
@@ -213,8 +221,11 @@ function flipToElement(el) {
 }
 
 function updateIndicator() {
-  $("#pageIndicator") && ($("#pageSlider").value = S.page + 1);
-  $("#pageSlider").max = S.pages;
+  const slider = $("#pageSlider");
+  if (slider) { slider.value = S.page + 1; slider.max = S.pages; }
+  const pt = `${S.page + 1}/${S.pages}`;
+  $("#pageText").textContent = pt;
+  $("#miniPage").textContent = pt;
 }
 
 /* 无缝跨章翻页：末页继续向后 → 下一章；首页向前 → 上一章末页 */
@@ -320,6 +331,7 @@ async function openBook(id, jump) {
     if (!Number.isFinite(para) || para < 0) para = 0;
     $("#shelf").classList.add("hidden");
     $("#reader").classList.remove("hidden");
+    syncSystemBars(); // 阅读页背景与书架不同，状态栏颜色跟着切
     await gotoChapter(ch, { restorePara: para });
   } catch (e) { showBookError(e.message); }
 }
@@ -346,6 +358,7 @@ function backToShelf() {
   $("#voiceSheet").classList.add("hidden");
   $("#voiceMask").classList.add("hidden");
   $("#shelf").classList.remove("hidden");
+  syncSystemBars(); // 回到书架，状态栏颜色跟回底色
   S.book = null; S.chapter = null; S.chapterCache.clear();
   track.innerHTML = "";
   loadShelf();
@@ -362,6 +375,7 @@ async function loadChapter(n, restorePara = null) {
   S.cur = { ch: n, p: restorePara ?? 0 };
   $("#chapterTitle").textContent = data.title;
   $("#playerChapter").textContent = data.title;
+  $("#miniChapter").textContent = data.title; // 左上角常显章节名
 
   const html = [`<h2 class="ch-title">${esc(data.title)}</h2>`];
   S.chapter.segs.forEach((segs, i) => {
@@ -417,8 +431,23 @@ $("#pageSlider").addEventListener("input", (e) => goToPage(+e.target.value - 1))
 
 /* 目录 / 设置 / 音色弹窗 */
 function closeToc() { $("#toc").classList.add("hidden"); $("#tocMask").classList.add("hidden"); }
-$("#btnToc").addEventListener("click", () => { $("#toc").classList.remove("hidden"); $("#tocMask").classList.remove("hidden"); });
+$("#btnToc").addEventListener("click", () => {
+  $("#toc").classList.remove("hidden");
+  $("#tocMask").classList.remove("hidden");
+  const cur = $("#tocList .toc-item.current");
+  if (cur) cur.scrollIntoView({ block: "center" });
+});
 $("#tocMask").addEventListener("click", closeToc);
+
+/* 目录正序/倒序 */
+let tocDesc = false;
+$("#tocOrder").addEventListener("click", () => {
+  tocDesc = !tocDesc;
+  $("#tocOrder").textContent = tocDesc ? "正序" : "倒序";
+  $("#tocList").style.flexDirection = tocDesc ? "column-reverse" : "column";
+  const cur = $("#tocList .toc-item.current");
+  if (cur) cur.scrollIntoView({ block: "center" });
+});
 
 $("#btnSettings").addEventListener("click", () => { $("#settingsSheet").classList.toggle("hidden"); });
 document.addEventListener("click", (e) => {
@@ -461,18 +490,53 @@ window.addEventListener("resize", () => {
 });
 
 /* ---------------- 听书播放器 ---------------- */
-const VOICE_SHORT = { "zh-CN-XiaoxiaoNeural": "晓晓", "zh-CN-XiaoyiNeural": "晓伊", "zh-CN-YunxiNeural": "云希", "zh-CN-YunjianNeural": "云健", "zh-CN-YunxiaNeural": "云夏", "zh-CN-YunyangNeural": "云扬", "zh-CN-liaoning-XiaobeiNeural": "晓北", "zh-CN-shaanxi-XiaoniNeural": "晓妮", "zh-HK-HiuMaanNeural": "曉曼", "zh-TW-HsiaoChenNeural": "筱臣" };
+const VOICE_SHORT = { "zh-CN-XiaoxiaoNeural": "晓晓", "zh-CN-XiaoyiNeural": "晓伊", "zh-CN-YunxiNeural": "云希", "zh-CN-Yunjian": "云健", "zh-CN-YunjianNeural": "云健", "zh-CN-YunxiaNeural": "云夏", "zh-CN-YunyangNeural": "云扬", "zh-CN-liaoning-XiaobeiNeural": "晓北", "zh-CN-shaanxi-XiaoniNeural": "晓妮", "zh-HK-HiuMaanNeural": "曉曼", "zh-TW-HsiaoChenNeural": "筱臣" };
+
+/* 系统音色（离线可用）：列表顺序稳定，speak(voice: 索引) 按此索引选择 */
+let nativeVoiceList = null;
+async function nativeVoices() {
+  const tts = nativeTTS();
+  if (!tts?.getVoices) return null;
+  if (!nativeVoiceList) {
+    try { nativeVoiceList = (await tts.getVoices()).voices || []; } catch { nativeVoiceList = []; }
+  }
+  return nativeVoiceList;
+}
+const voiceLabel = (v) => {
+  const n = String(v.name || "系统音色");
+  return n.length <= 16 ? n : (n.split(/[.:]/).filter(Boolean).pop() || n).slice(0, 16);
+};
 
 async function loadVoices() {
   const grid = $("#voiceGrid");
   if (grid.children.length) return;
   if (LOCAL_MODE) await checkServer();
   if (LOCAL_MODE && !serverAlive) {
-    const b = document.createElement("button");
-    b.className = "voice-item active";
-    b.style.gridColumn = "1 / -1";
-    b.textContent = "系统语音（当前离线）";
-    grid.appendChild(b);
+    // 离线：列出手机系统 TTS 自带的中文音色，可真实切换
+    const list = await nativeVoices();
+    const zh = (list || []).filter((v) => String(v.lang || "").toLowerCase().startsWith("zh"));
+    const pool = zh.length ? zh : (list || []);
+    if (!pool.length) {
+      const b = document.createElement("button");
+      b.className = "voice-item active";
+      b.style.gridColumn = "1 / -1";
+      b.textContent = "系统音色";
+      grid.appendChild(b);
+      $("#voiceShort").textContent = "系统";
+      return;
+    }
+    pool.forEach((v) => {
+      const b = document.createElement("button");
+      b.className = "voice-item" + (v.name === prefs.nativeVoice ? " active" : "");
+      b.textContent = voiceLabel(v);
+      b.title = `${v.name} (${v.lang})`;
+      b.addEventListener("click", () => {
+        prefs.nativeVoice = v.name;
+        grid.querySelectorAll(".voice-item").forEach((x) => x.classList.toggle("active", x === b));
+        if (S.playing) playFrom(S.cur.ch, S.cur.p);
+      });
+      grid.appendChild(b);
+    });
     $("#voiceShort").textContent = "系统";
     return;
   }
@@ -499,12 +563,34 @@ $("#voiceMask").addEventListener("click", closeVoice);
 
 $("#btnListen").addEventListener("click", async () => {
   toggleMenu(false);
-  playFrom(S.cur.ch, S.cur.p);
+  // 从当前页第一个段落开始读（番茄式体验），而不是上次播放位置
+  playFrom(S.cur.ch, firstVisiblePara());
 });
-$("#rateRange").addEventListener("input", (e) => { $("#rateLabel").textContent = e.target.value + "%"; });
+$("#rateRange").addEventListener("input", (e) => { $("#rateLabel").textContent = (+e.target.value / 100).toFixed(1) + "x"; });
 $("#rateRange").addEventListener("change", (e) => {
   prefs.rate = +e.target.value;
   if (S.playing) playFrom(S.cur.ch, S.cur.p);
+});
+
+/* 定时关闭听书 */
+let timerTick = null;
+const fmtLeft = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+$("#timerChips").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-min]");
+  if (!b) return;
+  const min = +b.dataset.min;
+  document.querySelectorAll("#timerChips button").forEach((x) => x.classList.toggle("active", x === b));
+  clearInterval(timerTick); timerTick = null;
+  if (!min) { S.timerEnd = 0; $("#playerSub").textContent = "听书中"; return; }
+  S.timerEnd = Date.now() + min * 60000;
+  const tick = () => {
+    const left = S.timerEnd - Date.now();
+    if (left <= 0) { stopPlay(); toast("定时时间到，已停止听书"); return; }
+    if (S.playing) $("#playerSub").textContent = "听书中 · 剩 " + fmtLeft(left);
+  };
+  tick();
+  timerTick = setInterval(tick, 1000);
+  toast(`将在 ${min} 分钟后停止听书`);
 });
 
 /* 逐句高亮：按字符占比把播放进度映射到段落内的句子 */
@@ -546,7 +632,8 @@ async function getAudio(ch, p) {
     text = data.paras[p];
   }
   if (!text) throw new Error("no text");
-  const res = await fetch(`${SERVER}/api/ra?text=${encodeURIComponent(text)}&voiceName=${encodeURIComponent(prefs.voice)}&rate=${prefs.rate}`);
+  const rateOffset = prefs.rate - 100; // 倍数 → Edge 的 ±百分比
+  const res = await fetch(`${SERVER}/api/ra?text=${encodeURIComponent(text)}&voiceName=${encodeURIComponent(prefs.voice)}&rate=${rateOffset}`);
   if (!res.ok) throw new Error(`合成失败 HTTP ${res.status}`);
   const url = URL.createObjectURL(await res.blob());
   if (S.audioCache.size > 24) {
@@ -609,7 +696,13 @@ async function nativeChain(ch, p, token) {
     S.cur = { ch, p };
     updateSegHighlight(p, 0);
     try {
-      await nativeTTS().speak({ text, lang: "zh-CN", rate: Math.max(0.5, Math.min(2, 1 + prefs.rate / 100)), pitch: 1 });
+      const opts = { text, lang: "zh-CN", rate: Math.max(0.5, Math.min(2, prefs.rate / 100)), pitch: 1 };
+      const list = await nativeVoices();
+      if (list && prefs.nativeVoice) {
+        const idx = list.findIndex((v) => v.name === prefs.nativeVoice);
+        if (idx >= 0) opts.voice = idx;
+      }
+      await nativeTTS().speak(opts);
     } catch { await new Promise((r) => setTimeout(r, 800)); }
     if (token !== S.playToken) return;
     p++;
@@ -650,7 +743,11 @@ function stopPlay() {
   audio.pause();
   audio.removeAttribute("src");
   try { audio.load(); } catch {}
+  try { nativeTTS()?.stop?.(); } catch {} // 关键：停掉系统语音引擎，否则手机上声音关不掉
   track.querySelectorAll(".seg.on").forEach((el) => el.classList.remove("on")); // 关闭听书后取消正文高亮
+  clearInterval(timerTick); timerTick = null; S.timerEnd = 0; // 手动停止同时取消定时
+  document.querySelectorAll("#timerChips button").forEach((x) => x.classList.toggle("active", x.dataset.min === "0"));
+  $("#playerSub").textContent = "听书中";
 }
 
 $("#btnPlayToggle").addEventListener("click", () => {
@@ -731,12 +828,18 @@ $("#storeMask").addEventListener("click", closeStore);
 /* ---------------- 原生壳适配（Capacitor App 内生效，浏览器自动跳过） ---------------- */
 const Cap = window.Capacitor?.Plugins || null;
 
-/* 状态栏/手势条与应用主题同色同明暗（Android 由内置 SystemBars 插件处理，iOS 走系统默认） */
+const SHELF_BG = { light: "#f7f7f5", dark: "#0d0d0d" };
+const READER_BG = { white: "#ffffff", sepia: "#f5efdc", green: "#cde8d2", dark: "#121212" };
+
+/* 状态栏/手势条：颜色跟随当前界面背景，图标明暗随之反转（夜间可见） */
 function syncSystemBars() {
+  const reading = !!(S.book && S.chapter);
   const dark = prefs.theme === "dark";
+  const bg = reading ? (READER_BG[prefs.theme] || "#ffffff") : SHELF_BG[dark ? "dark" : "light"];
   try { Cap?.SystemBars?.setStyle?.({ style: dark ? "DARK" : "LIGHT" }); } catch {}
+  try { window.AndroidBars?.set?.(bg, dark); } catch {} // Android 原生桥：染状态栏/手势条底色
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", dark ? "#121212" : "#f7f7f5");
+  if (meta) meta.setAttribute("content", bg);
 }
 
 /* Android 物理返回键 / 侧滑手势：MainActivity 经此钩子询问是否已消费。
@@ -759,8 +862,10 @@ window.__szBack = () => {
 /* ---------------- 启动 ---------------- */
 applyReaderPrefs(false);
 $("#rateRange").value = prefs.rate;
-$("#rateLabel").textContent = prefs.rate + "%";
+$("#rateLabel").textContent = (prefs.rate / 100).toFixed(1) + "x";
 $("#voiceShort").textContent = VOICE_SHORT[prefs.voice] || "晓晓";
+if (LOCAL_MODE) checkServer();      // 后台预探测家里电脑，不阻塞首次听书
+if (nativeTTS()?.getVoices) nativeVoices(); // 预热系统 TTS 引擎，首次开播更快
 loadShelf();
 
 // 调试/自动化测试钩子
