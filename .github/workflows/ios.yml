@@ -8,14 +8,9 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-
-      - name: 固定 Xcode 16.2
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '16.2'
 
       - uses: actions/setup-node@v4
         with:
@@ -43,7 +38,10 @@ jobs:
       - name: 隔离验证 SPM 图
         run: |
           cd ios/App/CapApp-SPM
-          swift package resolve 2>&1 | tee ../../diag_swift.log || true
+          swift --version > ../../diag_swift.log 2>&1 || true
+          swift package dump-package >> ../../diag_swift.log 2>&1 || true
+          swift package resolve >> ../../diag_swift.log 2>&1 || true
+          tail -5 ../../diag_swift.log
 
       - name: 解析 SPM 依赖
         run: |
