@@ -63,11 +63,13 @@ jobs:
           xcodebuild -project App.xcodeproj -target App \
             -configuration Release -sdk iphoneos \
             -clonedSourcePackagesDirPath "$GITHUB_WORKSPACE/spm" \
-            -disableAutomaticPackageResolution \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
-            -derivedDataPath "$GITHUB_WORKSPACE/build" 2>&1 | tee ../../xcodebuild.log
+            2>&1 | tee ../../xcodebuild.log
+          APP_PATH=$(find "$GITHUB_WORKSPACE/ios" -type d -name "App.app" -path "*Release-iphoneos*" | head -1)
+          echo "APP_PATH=$APP_PATH"
+          test -n "$APP_PATH"
           mkdir -p Payload
-          cp -r "$GITHUB_WORKSPACE/build/Build/Products/Release-iphoneos/App.app" Payload/
+          cp -r "$APP_PATH" Payload/
           zip -qry shuzhai-unsigned.ipa Payload
 
       - name: 上传 IPA
