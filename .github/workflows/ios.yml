@@ -12,9 +12,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: 固定 Xcode 16.2
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.2'
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: 清理 SPM 缓存
+        run: |
+          rm -rf ~/Library/Caches/org.swift.swiftpm ~/Library/org.swift.swiftpm || true
+          rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm || true
 
       - name: 安装依赖
         run: set -o pipefail; npm ci 2>&1 | tee npm.log
@@ -23,18 +33,23 @@ jobs:
         run: set -o pipefail; npx cap sync ios 2>&1 | tee sync.log
 
       - name: 解析 SPM 依赖
-        run: set -o pipefail; xcodebuild -project ios/App/App.xcodeproj -scheme App -resolvePackageDependencies 2>&1 | tee resolve.log
+        run: |
+          set -o pipefail
+          cd ios/App
+          xcodebuild -project App.xcodeproj -scheme App -clonedSourcePackagesDirPath "$GITHUB_WORKSPACE/spm" -resolvePackageDependencies 2>&1 | tee ../../resolve.log
 
       - name: 编译未签名 IPA
         run: |
           set -o pipefail
-          xcodebuild -project ios/App/App.xcodeproj -scheme App \
+          cd ios/App
+          xcodebuild -project App.xcodeproj -scheme App \
             -configuration Release -destination 'generic/platform=iOS' \
+            -clonedSourcePackagesDirPath "$GITHUB_WORKSPACE/spm" \
             -disableAutomaticPackageResolution \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
-            -derivedDataPath build 2>&1 | tee xcodebuild.log
+            -derivedDataPath "$GITHUB_WORKSPACE/build" 2>&1 | tee ../../xcodebuild.log
           mkdir -p Payload
-          cp -r build/Build/Products/Release-iphoneos/App.app Payload/
+          cp -r "$GITHUB_WORKSPACE/build/Build/Products/Release-iphoneos/App.app" Payload/
           zip -qry shuzhai-unsigned.ipa Payload
 
       - name: 上传 IPA
@@ -48,10 +63,10 @@ jobs:
         if: failure()
         run: |
           {
-            for f in resolve.log xcodebuild.log sync.log npm.log; do
+            for f in ios/App/resolve.log ios/App/xcodebuild.log sync.log npm.log; do
               [ -f "$f" ] || continue
               echo "===== $f ====="
-              grep -iE "error:|Error:|FAILURE|Exception|Exit code|\\*\\* BUILD|crash" "$f" | tail -6
+              grep -iE "error:|Error:|FAILURE|Exception|Exit code|crash|Resolve" "$f" | tail -6
               tail -18 "$f"
             done
           } 2>/dev/null | fold -w 640 | head -10 | sed 's/^/::error::/' || true
