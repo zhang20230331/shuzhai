@@ -25,7 +25,7 @@ jobs:
       - name: 编译未签名 IPA
         run: |
           set -o pipefail
-          xcodebuild -workspace ios/App/App.xcworkspace -scheme App \
+          xcodebuild -project ios/App/App.xcodeproj -scheme App \
             -configuration Release -sdk iphoneos \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             -derivedDataPath build 2>&1 | tee xcodebuild.log
