@@ -1,0 +1,6 @@
+[
+  { "file": "西游记.txt", "name": "西游记", "author": "吴承恩（明）" },
+  { "file": "红楼梦.txt", "name": "红楼梦", "author": "曹雪芹（清）" },
+  { "file": "三国演义.txt", "name": "三国演义", "author": "罗贯中（明）" },
+  { "file": "水浒传.txt", "name": "水浒传", "author": "施耐庵（明）" }
+]

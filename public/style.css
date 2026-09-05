@@ -231,6 +231,8 @@ button { font-family: inherit; cursor: pointer; }
   border-radius: 10px; padding: 10px 8px; font-size: 13px; text-align: center;
 }
 .voice-item.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.store-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.store-list .voice-item { padding: 14px 10px; }
 .speed-row input { flex: 1; accent-color: var(--accent); }
 .speed-row span { width: 40px; text-align: right; font-size: 13px; color: var(--muted); }
 

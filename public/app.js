@@ -659,6 +659,51 @@ document.addEventListener("keydown", (e) => {
   if (e.code === "ArrowRight") flipNext();
 });
 
+/* ---------------- 名著书城（公版书，内置离线） ---------------- */
+function decodeBuf(buf) {
+  const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  if (u8.length >= 3 && u8[0] === 0xef && u8[1] === 0xbb && u8[2] === 0xbf)
+    return new TextDecoder("utf-8").decode(u8.slice(3));
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(u8); }
+  catch { return new TextDecoder("gb18030").decode(u8); }
+}
+
+async function openStore() {
+  $("#storeSheet").classList.remove("hidden");
+  $("#storeMask").classList.remove("hidden");
+  const list = $("#storeList");
+  if (list.children.length) return;
+  let catalog = [];
+  try { catalog = await (await fetch("store/manifest.json")).json(); } catch { catalog = []; }
+  if (!catalog.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">书城清单为空：把公版 TXT 放入 public/store/ 并登记 manifest.json</div>';
+    return;
+  }
+  catalog.forEach((b) => {
+    const btn = document.createElement("button");
+    btn.className = "voice-item";
+    btn.style.textAlign = "left";
+    btn.innerHTML = `<b>${esc(b.name)}</b><span style="float:right;color:var(--muted);font-size:11px">${esc(b.author || "")}</span>`;
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        toast(`正在加入《${b.name}》…`);
+        const buf = await (await fetch(`store/${encodeURIComponent(b.file)}`)).arrayBuffer();
+        const text = decodeBuf(buf);
+        const book = await Store.importBook(b.name, text);
+        closeStore();
+        await loadShelf();
+        openBook(book.id);
+      } catch (e) { toast(`导入失败：${e.message}`, 3000); }
+      btn.disabled = false;
+    });
+    list.appendChild(btn);
+  });
+}
+function closeStore() { $("#storeSheet").classList.add("hidden"); $("#storeMask").classList.add("hidden"); }
+$("#btnStore").addEventListener("click", openStore);
+$("#storeMask").addEventListener("click", closeStore);
+
 /* ---------------- 启动 ---------------- */
 applyReaderPrefs(false);
 $("#rateRange").value = prefs.rate;

@@ -100,6 +100,7 @@ const MIME = {
 
 function serveStatic(req, res, pathname) {
   let rel = pathname === "/" ? "index.html" : pathname.slice(1);
+  try { rel = decodeURIComponent(rel); } catch {}
   const file = path.join(PUBLIC_DIR, rel);
   if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
     res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });

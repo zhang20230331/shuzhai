@@ -19,6 +19,7 @@
   <header class="topbar">
     <h1>书斋</h1>
     <div class="topbar-actions">
+      <button id="btnStore" class="ghost-btn">名著书城</button>
       <button id="btnImportUrl" class="ghost-btn">链接导入</button>
       <button id="btnUpload" class="primary-btn">＋ 导入 TXT</button>
     </div>
@@ -134,7 +135,14 @@
   <div id="flipLoading" class="hidden"><div class="spin"></div></div>
 </div>
 
-<div id="toast" class="hidden"></div>
+  <!-- 名著书城 -->
+  <div id="storeMask" class="mask hidden"></div>
+  <div id="storeSheet" class="sheet hidden">
+    <div class="sheet-head">名著书城 <span style="font-size:11px;font-weight:400;color:var(--muted)">公版书 · 已内置 · 离线可读可听</span></div>
+    <div id="storeList" class="store-list"></div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
 <audio id="audio" preload="auto"></audio>
 <script src="local.js"></script>
 <script src="app.js"></script>
