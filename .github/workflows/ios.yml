@@ -23,6 +23,7 @@ jobs:
 
       - name: 清理 SPM 缓存
         run: |
+          defaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM YES
           rm -rf ~/Library/Caches/org.swift.swiftpm ~/Library/org.swift.swiftpm || true
           rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm || true
 
@@ -31,6 +32,12 @@ jobs:
 
       - name: 同步 Web 资源与插件
         run: set -o pipefail; npx cap sync ios 2>&1 | tee sync.log
+
+      - name: 插件依赖改用远程 SPM
+        run: |
+          cd ios/App/CapApp-SPM
+          sed -i '' 's|path: "../../../node_modules/@capacitor-community/text-to-speech"|url: "https://github.com/capacitor-community/text-to-speech.git", branch: "main"|' Package.swift
+          grep -n "package(" Package.swift
 
       - name: 解析 SPM 依赖
         run: |
