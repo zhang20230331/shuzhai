@@ -12,3 +12,5 @@ android/build/
 android/local.properties
 assets/generated/
 .DS_Store
+
+.mimosa/

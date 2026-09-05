@@ -69,10 +69,13 @@ jobs:
         if: failure()
         run: |
           {
-            for f in ios/App/resolve.log ios/App/xcodebuild.log sync.log npm.log; do
-              [ -f "$f" ] || continue
-              echo "===== $f ====="
-              grep -iE "error:|Error:|FAILURE|Exception|Exit code|crash|Resolve" "$f" | tail -6
-              tail -18 "$f"
-            done
-          } 2>/dev/null | fold -w 640 | head -10 | sed 's/^/::error::/' || true
+            echo "=== xcodebuild.log 全量 ==="
+            cat xcodebuild.log 2>/dev/null | tr '\n' '|' | fold -w 640
+            echo ""
+            echo "=== resolve.log 尾部 ==="
+            tail -12 resolve.log 2>/dev/null | tr '\n' '|' | fold -w 640
+            echo ""
+            echo "=== xcodebuild -version 独立测试 ==="
+            xcodebuild -version 2>&1 | head -3
+            echo "=== exit: $? ==="
+          } | head -14 | sed 's/^/::error::/' || true
