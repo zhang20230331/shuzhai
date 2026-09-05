@@ -1,0 +1,41 @@
+name: Build iOS IPA (未签名，供巨魔商店安装)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["public/**", "ios/**", ".github/workflows/ios.yml"]
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 同步 Web 资源与插件
+        run: npx cap sync ios
+
+      - name: 编译未签名 IPA
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App \
+            -configuration Release -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            -derivedDataPath build
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry shuzhai-unsigned.ipa Payload
+          ls -la shuzhai-unsigned.ipa
+
+      - name: 上传 IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: shuzhai-ios-ipa
+          path: shuzhai-unsigned.ipa
+          retention-days: 30

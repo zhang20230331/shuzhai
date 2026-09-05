@@ -1,0 +1,13 @@
+{
+  "appId": "com.shuzhai.reader",
+  "appName": "书斋",
+  "webDir": "public",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

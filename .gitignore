@@ -1,0 +1,14 @@
+node_modules/
+data/
+seed*.txt
+served_check.json
+test_xiaoxiao.mp3
+ios/App/Pods/
+ios/App/App/public/
+ios/DerivedData/
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+assets/generated/
+.DS_Store

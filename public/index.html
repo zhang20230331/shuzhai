@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#121212">
+<title>书斋 · 小说听书</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 书架 -->
+<div id="shelf" class="page">
+  <header class="topbar">
+    <h1>书斋</h1>
+    <div class="topbar-actions">
+      <button id="btnImportUrl" class="ghost-btn">链接导入</button>
+      <button id="btnUpload" class="primary-btn">＋ 导入 TXT</button>
+    </div>
+  </header>
+  <main id="bookGrid" class="grid"></main>
+  <div id="shelfEmpty" class="empty hidden">
+    <div class="empty-icon">📖</div>
+    <p>书架空空，导入一本 TXT 小说开始吧</p>
+    <p class="empty-sub">支持手机文件 / 电脑拖拽 / 链接导入，自动识别 GBK、UTF-8 编码</p>
+  </div>
+  <input type="file" id="fileInput" accept=".txt,text/plain" multiple hidden>
+</div>
+
+<!-- 阅读器 -->
+<div id="reader" class="page hidden">
+  <main id="viewport">
+    <div id="track"></div>
+  </main>
+
+  <!-- 顶部菜单（点屏幕中间呼出） -->
+  <header id="readerTop" class="reader-top">
+    <button id="btnBack" class="icon-btn" title="返回书架">
+      <svg viewBox="0 0 24 24" class="svg-ic"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z"/></svg>
+    </button>
+    <div class="chapter-title" id="chapterTitle"></div>
+    <div style="width:38px"></div>
+  </header>
+
+  <!-- 底部菜单（点屏幕中间呼出） -->
+  <footer id="readerMenu" class="reader-menu">
+    <div class="menu-row menu-chapter">
+      <button id="btnPrevChapter" class="menu-btn">上一章</button>
+      <input type="range" id="pageSlider" min="1" max="1" value="1" step="1">
+      <button id="btnNextChapter" class="menu-btn">下一章</button>
+    </div>
+    <div class="menu-row menu-actions">
+      <button id="btnToc" class="menu-btn">
+        <svg viewBox="0 0 24 24" class="svg-ic"><path d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z"/></svg><span>目录</span>
+      </button>
+      <button id="btnListen" class="menu-btn">
+        <svg viewBox="0 0 24 24" class="svg-ic"><path d="M12 3a9 9 0 0 0-9 9v6a3 3 0 0 0 3 3h2a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H5v-0a7 7 0 0 1 14 0v.1h-3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h3a3 3 0 0 0 3-3v-6a9 9 0 0 0-9-9z"/></svg><span>听书</span>
+      </button>
+      <button id="btnSettings" class="menu-btn">
+        <span class="aa">Aa</span><span>设置</span>
+      </button>
+      <button id="btnNight" class="menu-btn">
+        <svg viewBox="0 0 24 24" class="svg-ic"><path d="M12.3 3a9 9 0 1 0 8.7 11.6A7.5 7.5 0 0 1 12.3 3z"/></svg><span>夜间</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- 听书播放条 -->
+  <div id="playerBar" class="hidden">
+    <button id="btnPrevPara" class="pbtn" title="上一句">
+      <svg viewBox="0 0 24 24" class="svg-ic"><path d="M7 6h2.4v12H7zM19 6v12l-9-6z"/></svg>
+    </button>
+    <button id="btnPlayToggle" class="play-btn" title="播放/暂停">
+      <svg viewBox="0 0 24 24" class="svg-ic" id="icPlay"><path d="M8 5v14l11-7z"/></svg>
+      <svg viewBox="0 0 24 24" class="svg-ic hidden" id="icPause"><path d="M6 5h4.2v14H6zM13.8 5H18v14h-4.2z"/></svg>
+    </button>
+    <button id="btnNextPara" class="pbtn" title="下一句">
+      <svg viewBox="0 0 24 24" class="svg-ic"><path d="M14.6 6H17v12h-2.4zM5 6l9 6-9 6z"/></svg>
+    </button>
+    <div class="player-info">
+      <div class="player-chapter" id="playerChapter"></div>
+      <div class="player-sub">听书中</div>
+    </div>
+    <button id="btnVoice" class="voice-chip"><span id="voiceShort">晓晓</span>
+      <svg viewBox="0 0 24 24" class="svg-ic caret"><path d="M7 10l5 5 5-5z"/></svg>
+    </button>
+  </div>
+
+  <!-- 音色/语速 弹窗 -->
+  <div id="voiceMask" class="mask hidden"></div>
+  <div id="voiceSheet" class="sheet hidden">
+    <div class="sheet-head">朗读音色</div>
+    <div id="voiceGrid" class="voice-grid"></div>
+    <div class="sheet-row speed-row">
+      <span>语速</span>
+      <input type="range" id="rateRange" min="-50" max="100" step="10" value="0">
+      <span id="rateLabel">0%</span>
+    </div>
+  </div>
+
+  <!-- 目录抽屉 -->
+  <div id="tocMask" class="mask hidden"></div>
+  <aside id="toc" class="drawer hidden">
+    <div class="drawer-head">目录 <span id="tocCount"></span></div>
+    <div id="tocList"></div>
+  </aside>
+
+  <!-- 设置面板 -->
+  <div id="settingsSheet" class="sheet hidden">
+    <div class="sheet-row"><span>字号</span>
+      <div class="stepper"><button id="fontMinus">A−</button><span id="fontLabel"></span><button id="fontPlus">A＋</button></div>
+    </div>
+    <div class="sheet-row"><span>行距</span>
+      <div class="stepper"><button id="lhMinus">−</button><span id="lhLabel"></span><button id="lhPlus">＋</button></div>
+    </div>
+    <div class="sheet-row"><span>主题</span>
+      <div class="themes">
+        <button class="theme-dot" data-theme="white" style="--bg:#ffffff;--fg:#1a1a1a"></button>
+        <button class="theme-dot" data-theme="sepia" style="--bg:#f5efdc;--fg:#3b2f1e"></button>
+        <button class="theme-dot" data-theme="green" style="--bg:#cde8d2;--fg:#1d3324"></button>
+        <button class="theme-dot" data-theme="dark" style="--bg:#121212;--fg:#a8a8a8"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="flipLoading" class="hidden"><div class="spin"></div></div>
+</div>
+
+<div id="toast" class="hidden"></div>
+<audio id="audio" preload="auto"></audio>
+<script src="local.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
