@@ -17,21 +17,21 @@ jobs:
           node-version: 20
 
       - name: 安装依赖
-        run: npm ci
+        run: set -o pipefail; npm ci 2>&1 | tee npm.log
 
       - name: 同步 Web 资源与插件
-        run: npx cap sync ios
+        run: set -o pipefail; npx cap sync ios 2>&1 | tee sync.log
 
       - name: 编译未签名 IPA
         run: |
+          set -o pipefail
           xcodebuild -workspace ios/App/App.xcworkspace -scheme App \
             -configuration Release -sdk iphoneos \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
-            -derivedDataPath build
+            -derivedDataPath build 2>&1 | tee xcodebuild.log
           mkdir -p Payload
           cp -r build/Build/Products/Release-iphoneos/App.app Payload/
           zip -qry shuzhai-unsigned.ipa Payload
-          ls -la shuzhai-unsigned.ipa
 
       - name: 上传 IPA
         uses: actions/upload-artifact@v4
@@ -39,3 +39,21 @@ jobs:
           name: shuzhai-ios-ipa
           path: shuzhai-unsigned.ipa
           retention-days: 30
+
+      - name: 失败时公开日志
+        if: failure()
+        run: |
+          S="$GITHUB_STEP_SUMMARY"
+          {
+            echo "## 调试信息"
+            echo "- node $(node -v) / npm $(npm -v) / xcodebuild $(xcodebuild -version 2>&1 | head -1)"
+            echo "- CocoaPods $(pod --version 2>&1)"
+          } >> "$S"
+          for f in npm.log sync.log xcodebuild.log; do
+            if [ -f "$f" ]; then
+              echo "### $f 尾部100行" >> "$S"
+              echo '```' >> "$S"
+              tail -100 "$f" >> "$S"
+              echo '```' >> "$S"
+            fi
+          done

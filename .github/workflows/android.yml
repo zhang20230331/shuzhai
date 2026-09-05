@@ -22,16 +22,18 @@ jobs:
           node-version: 20
 
       - name: 安装依赖
-        run: npm ci
+        run: set -o pipefail; npm ci 2>&1 | tee npm.log
 
       - name: 同步 Web 资源与插件
-        run: npx cap sync android
+        run: set -o pipefail; npx cap sync android 2>&1 | tee sync.log
 
       - name: 编译 APK
         run: |
+          set -o pipefail
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          echo "sdk.dir=${ANDROID_HOME:-$ANDROID_SDK_ROOT}" > local.properties
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee ../gradle.log
 
       - name: 上传 APK
         uses: actions/upload-artifact@v4
@@ -39,3 +41,22 @@ jobs:
           name: shuzhai-android-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+
+      - name: 失败时公开日志
+        if: failure()
+        run: |
+          S="$GITHUB_STEP_SUMMARY"
+          {
+            echo "## 调试信息"
+            echo "- node $(node -v) / npm $(npm -v) / $(java -version 2>&1 | head -1)"
+            echo "- ANDROID_HOME=$ANDROID_HOME ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+            echo "- 工作目录内容: $(ls android 2>/dev/null | tr '\n' ' ')"
+          } >> "$S"
+          for f in npm.log sync.log android/gradle.log; do
+            if [ -f "$f" ]; then
+              echo "### $f 尾部100行" >> "$S"
+              echo '```' >> "$S"
+              tail -100 "$f" >> "$S"
+              echo '```' >> "$S"
+            fi
+          done
