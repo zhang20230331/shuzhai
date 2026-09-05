@@ -6,6 +6,7 @@ import android.view.Window;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import androidx.activity.OnBackPressedCallback;
+import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 
@@ -38,7 +39,7 @@ public class MainActivity extends BridgeActivity {
                         int color = Color.parseColor(bgHex);
                         w.setStatusBarColor(color);
                         w.setNavigationBarColor(color);
-                        WindowInsetsControllerCompat c = new WindowInsetsControllerCompat(w);
+                        WindowInsetsControllerCompat c = WindowCompat.getInsetsController(w, w.getDecorView());
                         c.setAppearanceLightStatusBars(!dark);
                         c.setAppearanceLightNavigationBars(!dark);
                     } catch (Exception ignored) {
