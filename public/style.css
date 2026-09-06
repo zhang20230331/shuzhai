@@ -184,7 +184,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- 听书悬浮球 + 操作面板（微信读书式） ---------- */
 .listen-ball {
-  position: absolute; right: 16px; bottom: calc(112px + var(--safe-bottom));
+  position: absolute; right: 16px; bottom: calc(180px + var(--safe-bottom));
   z-index: 45; /* 高于呼出式底栏(z40)，否则会被菜单栏压住 */
   width: 54px; height: 54px; border-radius: 50%;
   border: none; padding: 0;
@@ -326,6 +326,11 @@ button { font-family: inherit; cursor: pointer; }
   border-radius: 999px; padding: 6px 12px; font-size: 12px;
 }
 .timer-chips button.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+
+/* 语速大滑条 */
+.rate-big { padding: 6px 4px 2px; }
+.rate-big input[type="range"] { width: 100%; accent-color: var(--accent); height: 32px; }
+.rate-scale { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); margin-top: 2px; }
 
 #toast {
   position: fixed; left: 50%; bottom: calc(100px + var(--safe-bottom)); transform: translateX(-50%);

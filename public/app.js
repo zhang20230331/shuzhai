@@ -315,6 +315,8 @@ function toggleMenu(open) {
     $("#settingsSheet").classList.add("hidden");
     closeToc();
     closeVoice();
+    closeRateSheet();
+    closeTimerSheet();
   }
 }
 
@@ -887,8 +889,15 @@ $("#listenBall").addEventListener("click", () => {
 });
 function openPlayerSheet() { togglePlayerSheet(true); }
 function openVoiceSheet() { loadVoices().catch(() => {}); $("#voiceSheet").classList.remove("hidden"); $("#voiceMask").classList.remove("hidden"); }
-$("#psRate").addEventListener("click", openVoiceSheet);
-$("#psTimer").addEventListener("click", openVoiceSheet);
+function openRateSheet() { $("#rateSheet").classList.remove("hidden"); $("#rateMask").classList.remove("hidden"); }
+function openTimerSheet() { $("#timerSheet").classList.remove("hidden"); $("#timerMask").classList.remove("hidden"); }
+function closeRateSheet() { $("#rateSheet").classList.add("hidden"); $("#rateMask").classList.add("hidden"); }
+function closeTimerSheet() { $("#timerSheet").classList.add("hidden"); $("#timerMask").classList.add("hidden"); }
+$("#btnVoice").addEventListener("click", openVoiceSheet);
+$("#psRate").addEventListener("click", openRateSheet);
+$("#psTimer").addEventListener("click", openTimerSheet);
+$("#rateMask").addEventListener("click", closeRateSheet);
+$("#timerMask").addEventListener("click", closeTimerSheet);
 
 /* 锁屏/通知栏媒体卡片：元数据 + 原生通知桥 */
 function updateMediaState() {

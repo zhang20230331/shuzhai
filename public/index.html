@@ -17,7 +17,7 @@
 <!-- 书架 -->
 <div id="shelf" class="page">
   <header class="topbar">
-    <h1>书斋 <span class="ver">v1.6</span></h1>
+    <h1>书斋 <span class="ver">v1.7</span></h1>
     <div class="topbar-actions">
       <button id="btnStore" class="ghost-btn">名著书城</button>
       <button id="btnImportUrl" class="ghost-btn">链接导入</button>
@@ -88,7 +88,7 @@
         <div class="player-chapter" id="playerChapter"></div>
         <div class="player-sub" id="playerSub">听书中</div>
       </div>
-      <button id="btnClosePlayer" class="pbtn" title="关闭听书">
+      <button id="btnClosePlayer" class="pbtn" title="收起面板">
         <svg viewBox="0 0 24 24" class="svg-ic"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>
       </button>
     </div>
@@ -111,15 +111,27 @@
     </div>
   </div>
 
-  <!-- 音色/语速/定时 弹窗（半页，仅听书设置） -->
+  <!-- 音色弹窗 -->
   <div id="voiceMask" class="mask hidden"></div>
   <div id="voiceSheet" class="sheet hidden">
-    <div class="sheet-head">听书设置</div>
-    <div class="sheet-row speed-row">
-      <span>语速</span>
+    <div class="sheet-head">朗读音色 <span id="voiceHint" style="font-size:11px;font-weight:400;color:var(--muted)"></span></div>
+    <div id="voiceGrid" class="voice-list"></div>
+  </div>
+
+  <!-- 语速弹窗 -->
+  <div id="rateMask" class="mask hidden"></div>
+  <div id="rateSheet" class="sheet hidden">
+    <div class="sheet-head">语速</div>
+    <div class="rate-big">
       <input type="range" id="rateRange" min="50" max="200" step="10" value="100">
-      <span id="rateLabel">1.0x</span>
+      <div class="rate-scale"><span>0.5x</span><span id="rateLabel" style="font-weight:700;color:var(--accent)">1.0x</span><span>2.0x</span></div>
     </div>
+  </div>
+
+  <!-- 定时弹窗 -->
+  <div id="timerMask" class="mask hidden"></div>
+  <div id="timerSheet" class="sheet hidden">
+    <div class="sheet-head">定时关闭</div>
     <div class="sheet-row timer-row">
       <span>按时间</span>
       <div class="timer-chips" id="timerChips">
@@ -140,8 +152,6 @@
         <button data-ch="10">10章</button>
       </div>
     </div>
-    <div class="sheet-head" style="margin-top:8px">朗读音色 <span id="voiceHint" style="font-size:11px;font-weight:400;color:var(--muted)"></span></div>
-    <div id="voiceGrid" class="voice-list"></div>
   </div>
 
   <!-- 目录抽屉 -->
