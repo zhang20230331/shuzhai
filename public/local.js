@@ -84,6 +84,16 @@
     const idbGetAll = (store) => tx(store, "readonly", (s) => s.getAll());
     const idbDelete = (store, key) => tx(store, "readwrite", (s) => s.delete(key));
 
+    // 整本书记录较大（数 MB），每次 getChapter 都反序列化会在手机上明显卡顿：
+    // 首次读取后常驻内存，换书/删书/导入时失效
+    let cachedBook = null;
+    async function getRecord(id) {
+      if (cachedBook && cachedBook.id === id) return cachedBook.record;
+      const r = await idbGet(LN.books, id);
+      if (r) cachedBook = { id, record: r };
+      return r;
+    }
+
     function importBook(name, text) {
       const chapters = parseChapters(text);
       const paras = [];
@@ -99,10 +109,11 @@
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
         name, addedAt: Date.now(), chapters: chapterIndex, paras,
       };
-      return idbPut(LN.books, book).then(() => ({ id: book.id, name, chapterCount: chapterIndex.length, paraCount: paras.length, progress: null }));
+      return idbPut(LN.books, book).then(() => { cachedBook = null; return { id: book.id, name, chapterCount: chapterIndex.length, paraCount: paras.length, progress: null }; });
     }
 
     async function listBooks() {
+      cachedBook = null; // 书架列表走全量读取，缓存让位
       const books = await idbGetAll(LN.books);
       const out = [];
       for (const b of books) {
@@ -113,12 +124,12 @@
     }
 
     const getBook = async (id) => {
-      const b = await idbGet(LN.books, id);
+      const b = await getRecord(id);
       if (!b) throw new Error("书籍不存在");
       return { id: b.id, name: b.name, chapters: b.chapters, paraCount: b.paras.length, progress: (await idbGet(LN.meta, "p_" + id)) || null };
     };
     const getChapter = async (id, n) => {
-      const b = await idbGet(LN.books, id);
+      const b = await getRecord(id);
       if (!b) throw new Error("书籍不存在");
       const ch = b.chapters[n];
       if (!ch) throw new Error("章节不存在");
@@ -126,7 +137,7 @@
     };
     const saveProgress = (id, chapter, para) =>
       idbPut(LN.meta, { chapter, para, updatedAt: Date.now() }, "p_" + id);
-    const deleteBook = (id) => idbDelete(LN.books, id).then(() => idbDelete(LN.meta, "p_" + id));
+    const deleteBook = (id) => { cachedBook = null; return idbDelete(LN.books, id).then(() => idbDelete(LN.meta, "p_" + id)); };
 
     return { importBook, listBooks, getBook, getChapter, saveProgress, deleteBook };
   }

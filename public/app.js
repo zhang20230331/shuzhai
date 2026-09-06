@@ -537,33 +537,39 @@ async function loadVoices() {
   const grid = $("#voiceGrid");
   const rebuild = !grid.dataset.loaded;
   if (grid.children.length && !rebuild) return;
+  $("#voiceHint").textContent = "";
   grid.innerHTML = '<div class="voice-loading">正在获取音色…</div>';
-  if (LOCAL_MODE) await checkServer();
-  const offline = LOCAL_MODE && !serverAlive;
-  if (offline) {
-    const list = await nativeVoices();
-    if (!list) { grid.innerHTML = '<div class="voice-loading">当前为网页模式，音色跟随浏览器</div>'; return; }
-    const zh = list.filter((v) => String(v.lang || "").toLowerCase().startsWith("zh"));
-    const pool = zh.length ? zh : list;
-    grid.innerHTML = "";
-    if (!pool.length) {
-      $("#voiceHint").textContent = "未检测到可选音色，将使用系统默认";
-      const b = document.createElement("button");
-      b.className = "voice-item active";
-      b.innerHTML = '<span>系统默认音色</span>' + CHECK_SVG;
-      grid.appendChild(b);
+  try {
+    if (LOCAL_MODE) await checkServer();
+    const offline = LOCAL_MODE && !serverAlive;
+    if (offline) {
+      const list = await nativeVoices();
+      if (!list) { renderVoiceError("未检测到语音插件（仅原生 App 内可用）", true); return; }
+      const zh = list.filter((v) => String(v.lang || "").toLowerCase().startsWith("zh"));
+      const pool = zh.length ? zh : list;
+      if (!pool.length) {
+        renderVoiceError("手机系统没有返回可用音色（TTS 引擎未就绪或未安装中文语音），可到系统设置→更多设置→语言与输入→文字转语音(TTS) 检查", true);
+        return;
+      }
+      $("#voiceHint").textContent = `系统音色 · ${pool.length} 个（离线）`;
+      renderNativeVoices(pool);
+      grid.dataset.loaded = "1";
       return;
     }
-    $("#voiceHint").textContent = "系统音色 · " + pool.length + " 个";
-    pool.forEach((v) => {
+    $("#voiceHint").textContent = "Edge 在线音色";
+    const voices = await api(`${SERVER}/api/voices`);
+    grid.innerHTML = "";
+    voices.forEach((v) => {
       const b = document.createElement("button");
-      b.className = "voice-item" + (v.name === prefs.nativeVoice ? " active" : "");
-      b.innerHTML = `<span>${esc(voiceLabel(v))}</span>` + (v.name === prefs.nativeVoice ? CHECK_SVG : "");
-      b.title = `${v.name} (${v.lang})`;
+      b.className = "voice-item" + (v.id === prefs.voice ? " active" : "");
+      b.innerHTML = `<span>${esc(VOICE_SHORT[v.id] || v.name)}</span>` + (v.id === prefs.voice ? CHECK_SVG : "");
+      b.dataset.id = v.id;
       b.addEventListener("click", () => {
-        prefs.nativeVoice = v.name;
+        prefs.voice = v.id;
+        S.audioCache.forEach((u) => URL.revokeObjectURL(u));
+        S.audioCache.clear();
         grid.querySelectorAll(".voice-item").forEach((x) => {
-          x.classList.toggle("active", x === b);
+          x.classList.toggle("active", x.dataset.id === v.id);
           x.querySelector(".v-check")?.remove();
         });
         b.insertAdjacentHTML("beforeend", CHECK_SVG);
@@ -572,22 +578,23 @@ async function loadVoices() {
       grid.appendChild(b);
     });
     grid.dataset.loaded = "1";
-    return;
+  } catch (e) {
+    renderVoiceError("获取失败：" + (e.message || e), true);
   }
-  $("#voiceHint").textContent = "Edge 在线音色";
-  const voices = await api(`${SERVER}/api/voices`);
+}
+
+function renderNativeVoices(pool) {
+  const grid = $("#voiceGrid");
   grid.innerHTML = "";
-  voices.forEach((v) => {
+  pool.forEach((v) => {
     const b = document.createElement("button");
-    b.className = "voice-item" + (v.id === prefs.voice ? " active" : "");
-    b.innerHTML = `<span>${esc(VOICE_SHORT[v.id] || v.name)}</span>` + (v.id === prefs.voice ? CHECK_SVG : "");
-    b.dataset.id = v.id;
+    b.className = "voice-item" + (v.name === prefs.nativeVoice ? " active" : "");
+    b.innerHTML = `<span>${esc(voiceLabel(v))}</span>` + (v.name === prefs.nativeVoice ? CHECK_SVG : "");
+    b.title = `${v.name} (${v.lang})`;
     b.addEventListener("click", () => {
-      prefs.voice = v.id;
-      S.audioCache.forEach((u) => URL.revokeObjectURL(u));
-      S.audioCache.clear();
+      prefs.nativeVoice = v.name;
       grid.querySelectorAll(".voice-item").forEach((x) => {
-        x.classList.toggle("active", x.dataset.id === v.id);
+        x.classList.toggle("active", x === b);
         x.querySelector(".v-check")?.remove();
       });
       b.insertAdjacentHTML("beforeend", CHECK_SVG);
@@ -595,7 +602,19 @@ async function loadVoices() {
     });
     grid.appendChild(b);
   });
-  grid.dataset.loaded = "1";
+}
+
+function renderVoiceError(reason, withRetry) {
+  const grid = $("#voiceGrid");
+  grid.dataset.loaded = "";
+  $("#voiceHint").textContent = "";
+  grid.innerHTML = `<div class="voice-loading">${esc(reason)}</div>` +
+    (withRetry ? '<button class="voice-retry" id="voiceRetryBtn">重新获取</button>' : "");
+  $("#voiceRetryBtn")?.addEventListener("click", () => {
+    nativeVoiceList = null;
+    serverCheckedAt = 0;
+    loadVoices();
+  });
 }
 $("#btnVoice").addEventListener("click", openVoiceSheet);
 function closeVoice() { $("#voiceSheet").classList.add("hidden"); $("#voiceMask").classList.add("hidden"); }
@@ -609,7 +628,10 @@ $("#btnListen").addEventListener("click", async () => {
 $("#rateRange").addEventListener("input", (e) => { $("#rateLabel").textContent = (+e.target.value / 100).toFixed(1) + "x"; });
 $("#rateRange").addEventListener("change", (e) => {
   prefs.rate = +e.target.value;
-  if (S.playing) playFrom(S.cur.ch, S.cur.p);
+  // 清掉旧语速的预取音频，立即按新语速重新合成当前句
+  S.audioCache.forEach((u) => URL.revokeObjectURL(u));
+  S.audioCache.clear();
+  if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
 });
 
 /* 定时关闭听书：按时间 / 按章节（番茄式） */
@@ -706,7 +728,7 @@ function togglePlayerSheet(force) {
 }
 
 async function getAudio(ch, p) {
-  const key = `${ch}:${p}`;
+  const key = `${ch}:${p}:${prefs.rate}`; // 缓存键必须含语速：否则改语速后命中旧音频，听起来"语速没有用"
   if (S.audioCache.has(key)) return S.audioCache.get(key);
   let text;
   if (ch === S.cur.ch && S.chapter) text = S.chapter.paras[p];
@@ -871,9 +893,11 @@ function stopPlay() {
 $("#btnPlayToggle").addEventListener("click", () => {
   if (S.playing) pauseListening(); else resumeListening();
 });
-// ✕ 只收起面板：听书继续，可从悬浮球再唤出；彻底关闭用播放键暂停
+// ✕ = 关闭听书：停止播放、清高亮清定时（重新开始点悬浮球）
 $("#btnClosePlayer").addEventListener("click", () => {
+  stopPlay();
   togglePlayerSheet(false);
+  toast("已关闭听书");
 });
 $("#btnNextPara").addEventListener("click", () => nextPara());
 $("#btnPrevPara").addEventListener("click", () => prevPara());
