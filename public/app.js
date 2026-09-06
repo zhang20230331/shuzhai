@@ -17,6 +17,7 @@ const S = {
   pages: 1,
   loading: false,
   menuOpen: false,
+  follow: true,        // 听书时高亮是否自动翻页（手动翻页后置 false，点高亮句恢复）
   chapterCache: new Map(),
   audioCache: new Map(),
 };
@@ -267,7 +268,7 @@ function prefetchAdj(n) {
   });
 }
 
-/* 手势：横向拖动翻页 */
+/* 手势：横向拖动翻页。听书时手动翻页 = 暂停自动跟随（播放继续，高亮留在播放句） */
 let drag = null;
 viewport.addEventListener("touchstart", (e) => {
   drag = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, dx: 0, axis: null, moved: false };
@@ -290,17 +291,26 @@ viewport.addEventListener("touchend", () => {
   track.classList.remove("dragging");
   if (drag.axis !== "h") { drag = null; return; }
   const d = drag.dx;
+  const moved = drag.moved;
   drag = null;
+  if (moved && S.playing) S.follow = false; // 用户手动翻了页：跟随让位
   if (d < -50) flipNext();
   else if (d > 50) flipPrev();
   else goToPage(S.page);
 });
 viewport.addEventListener("touchcancel", () => { if (drag) { track.classList.remove("dragging"); goToPage(S.page); drag = null; } });
 
-/* 点击：菜单开→关闭；否则左1/3上一页、右1/3下一页、中间呼出菜单 */
+/* 点击：菜单开→关闭；点正在读的高亮句=跳回播放位置；否则左1/3上一页、右1/3下一页、中间呼出菜单 */
 viewport.addEventListener("click", (e) => {
   if (drag && drag.moved) return;
   if (S.menuOpen) { toggleMenu(false); return; }
+  const onSeg = e.target.closest && e.target.closest(".seg.on");
+  if (onSeg && (S.playing || S.pausedPos)) {
+    S.follow = true; // 点击正在读的句子：跳回播放位置并恢复跟随
+    flipToElement(onSeg);
+    return;
+  }
+  if (S.playing) S.follow = false;
   const x = e.clientX / window.innerWidth;
   if (x < 0.3) flipPrev();
   else if (x > 0.7) flipNext();
@@ -443,7 +453,7 @@ window.addEventListener("pagehide", () => { if (S.book) saveProgressNow(); });
 /* 章节按钮 */
 $("#btnPrevChapter").addEventListener("click", () => { stopPlay(); gotoChapter(S.cur.ch - 1, { lastPage: true }); });
 $("#btnNextChapter").addEventListener("click", () => { stopPlay(); gotoChapter(S.cur.ch + 1, {}); });
-$("#pageSlider").addEventListener("input", (e) => goToPage(+e.target.value - 1));
+$("#pageSlider").addEventListener("input", (e) => { if (S.playing) S.follow = false; goToPage(+e.target.value - 1); });
 
 /* 目录 / 设置 / 音色弹窗 */
 function closeToc() { $("#toc").classList.add("hidden"); $("#tocMask").classList.add("hidden"); }
@@ -682,7 +692,7 @@ function chapterDone() {
   $("#playerSub").textContent = `听书中 · 剩 ${left} 章`;
 }
 
-/* 逐句高亮：按字符占比把播放进度映射到段落内的句子 */
+/* 逐句高亮：音频流按字符占比映射；手动翻页后暂停自动跟随（点高亮句跳回） */
 function updateSegHighlight(p, ratio) {
   const segs = S.chapter.segs[p] || [];
   const total = segs.reduce((s, x) => s + x.length, 0) || 1;
@@ -692,10 +702,16 @@ function updateSegHighlight(p, ratio) {
     if (ratio <= acc / total) { idx = i; break; }
     idx = i;
   }
-  track.querySelectorAll(".seg.on").forEach((el) => el.classList.remove("on"));
-  const el = track.querySelector(`.seg[data-p="${p}"][data-s="${idx}"]`);
-  if (el) flipToElement(el), el.classList.add("on");
+  highlightSeg(p, idx);
   return idx;
+}
+/* 直接高亮指定句（按句朗读用），跟随模式才翻页 */
+function highlightSeg(p, s) {
+  track.querySelectorAll(".seg.on").forEach((el) => el.classList.remove("on"));
+  const el = track.querySelector(`.seg[data-p="${p}"][data-s="${s}"]`);
+  if (!el) return;
+  if (S.follow !== false) flipToElement(el);
+  el.classList.add("on");
 }
 
 audio.addEventListener("timeupdate", () => {
@@ -727,7 +743,7 @@ function togglePlayerSheet(force) {
 }
 
 async function getAudio(ch, p) {
-  const key = `${ch}:${p}:${prefs.rate}`; // 缓存键必须含语速：否则改语速后命中旧音频，听起来"语速没有用"
+  const key = `${ch}:${p}:${prefs.rate}:${prefs.voice}`; // 缓存键含语速+音色：切换设置后不再命中旧音频
   if (S.audioCache.has(key)) return S.audioCache.get(key);
   let text;
   if (ch === S.cur.ch && S.chapter) text = S.chapter.paras[p];
@@ -758,6 +774,7 @@ async function playFrom(ch, p, s = 0) {
   if (ch !== S.cur.ch) await loadChapter(ch, p);
   S.cur = { ch, p, s };
   S.pausedPos = null;
+  S.follow = true; // 新一次播放默认跟随高亮翻页
   togglePlayerSheet(true);
   saveProgressNow();
   setPlayingUI(true);
@@ -810,7 +827,7 @@ async function nativeChain(ch, p, s, token) {
     const text = segs[s];
     if (!text) { s++; continue; }
     S.cur = { ch, p, s };
-    updateSegHighlight(p, segs.length ? s / segs.length : 0);
+    highlightSeg(p, s);
     let spoke = false;
     try {
       const opts = { text, lang: "zh-CN", rate: Math.max(0.5, Math.min(2, prefs.rate / 100)), pitch: 1 };
