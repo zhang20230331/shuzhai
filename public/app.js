@@ -227,7 +227,6 @@ function updateIndicator() {
   $("#pageText").textContent = pt;
   $("#miniPage").textContent = pt;
 }
-
 /* 无缝跨章翻页：末页继续向后 → 下一章；首页向前 → 上一章末页 */
 async function flipNext() {
   if (S.loading) return;
@@ -311,6 +310,7 @@ viewport.addEventListener("click", (e) => {
 function toggleMenu(open) {
   S.menuOpen = open ?? !S.menuOpen;
   $("#reader").classList.toggle("menu-open", S.menuOpen);
+  updateBall();
   if (!S.menuOpen) {
     $("#settingsSheet").classList.add("hidden");
     closeToc();
@@ -332,6 +332,7 @@ async function openBook(id, jump) {
     $("#shelf").classList.add("hidden");
     $("#reader").classList.remove("hidden");
     syncSystemBars(); // 阅读页背景与书架不同，状态栏颜色跟着切
+    updateBall();
     await gotoChapter(ch, { restorePara: para });
   } catch (e) { showBookError(e.message); }
 }
@@ -355,10 +356,12 @@ function backToShelf() {
   saveProgressNow();
   toggleMenu(false);
   $("#reader").classList.add("hidden");
+  $("#playerSheet").classList.add("hidden");
   $("#voiceSheet").classList.add("hidden");
   $("#voiceMask").classList.add("hidden");
   $("#shelf").classList.remove("hidden");
   syncSystemBars(); // 回到书架，状态栏颜色跟回底色
+  updateBall();
   S.book = null; S.chapter = null; S.chapterCache.clear();
   track.innerHTML = "";
   loadShelf();
@@ -467,6 +470,7 @@ function applyReaderPrefs(relayout = true) {
   $("#fontLabel").textContent = prefs.font;
   $("#lhLabel").textContent = prefs.lh.toFixed(1);
   document.body.dataset.theme = prefs.theme === "dark" ? "dark" : "";
+  $("#reader").dataset.theme = prefs.theme; // 阅读主题变量挂在 #reader 上：操作栏/悬浮标识/正文全部继承
   viewport.dataset.theme = prefs.theme;
   document.querySelectorAll(".theme-dot").forEach((d) => d.classList.toggle("active", d.dataset.theme === prefs.theme));
   $("#btnNight span:last-child").textContent = prefs.theme === "dark" ? "白天" : "夜间";
@@ -490,7 +494,7 @@ window.addEventListener("resize", () => {
 });
 
 /* ---------------- 听书播放器 ---------------- */
-const VOICE_SHORT = { "zh-CN-XiaoxiaoNeural": "晓晓", "zh-CN-XiaoyiNeural": "晓伊", "zh-CN-YunxiNeural": "云希", "zh-CN-Yunjian": "云健", "zh-CN-YunjianNeural": "云健", "zh-CN-YunxiaNeural": "云夏", "zh-CN-YunyangNeural": "云扬", "zh-CN-liaoning-XiaobeiNeural": "晓北", "zh-CN-shaanxi-XiaoniNeural": "晓妮", "zh-HK-HiuMaanNeural": "曉曼", "zh-TW-HsiaoChenNeural": "筱臣" };
+const VOICE_SHORT = { "zh-CN-XiaoxiaoNeural": "晓晓", "zh-CN-XiaoyiNeural": "晓伊", "zh-CN-YunxiNeural": "云希", "zh-CN-YunjianNeural": "云健", "zh-CN-YunxiaNeural": "云夏", "zh-CN-YunyangNeural": "云扬", "zh-CN-YunyeNeural": "云野", "zh-CN-XiaoyouNeural": "晓童", "zh-CN-liaoning-XiaobeiNeural": "晓北", "zh-CN-shaanxi-XiaoniNeural": "晓妮", "zh-HK-HiuMaanNeural": "曉曼", "zh-HK-HiuGaaiNeural": "曉佳", "zh-TW-HsiaoChenNeural": "筱臣", "zh-TW-YunJheNeural": "雲哲" };
 
 /* 系统音色（离线可用）：列表顺序稳定，speak(voice: 索引) 按此索引选择 */
 let nativeVoiceList = null;
@@ -522,7 +526,6 @@ async function loadVoices() {
       b.style.gridColumn = "1 / -1";
       b.textContent = "系统音色";
       grid.appendChild(b);
-      $("#voiceShort").textContent = "系统";
       return;
     }
     pool.forEach((v) => {
@@ -537,7 +540,6 @@ async function loadVoices() {
       });
       grid.appendChild(b);
     });
-    $("#voiceShort").textContent = "系统";
     return;
   }
   const voices = await api(`${SERVER}/api/voices`);
@@ -550,14 +552,13 @@ async function loadVoices() {
       prefs.voice = v.id;
       S.audioCache.forEach((u) => URL.revokeObjectURL(u));
       S.audioCache.clear();
-      $("#voiceShort").textContent = VOICE_SHORT[v.id] || v.name;
       grid.querySelectorAll(".voice-item").forEach((x) => x.classList.toggle("active", x.dataset.id === v.id));
       if (S.playing) playFrom(S.cur.ch, S.cur.p);
     });
     grid.appendChild(b);
   });
 }
-$("#btnVoice").addEventListener("click", () => { loadVoices().catch(() => {}); $("#voiceSheet").classList.remove("hidden"); $("#voiceMask").classList.remove("hidden"); });
+$("#btnVoice").addEventListener("click", openVoiceSheet);
 function closeVoice() { $("#voiceSheet").classList.add("hidden"); $("#voiceMask").classList.add("hidden"); }
 $("#voiceMask").addEventListener("click", closeVoice);
 
@@ -572,26 +573,54 @@ $("#rateRange").addEventListener("change", (e) => {
   if (S.playing) playFrom(S.cur.ch, S.cur.p);
 });
 
-/* 定时关闭听书 */
+/* 定时关闭听书：按时间 / 按章节（番茄式） */
 let timerTick = null;
 const fmtLeft = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+function timerStatusText() {
+  if (S.timerEnd) return "听书中 · 剩 " + fmtLeft(S.timerEnd - Date.now());
+  if (S.timerChapters) return `听书中 · 剩 ${S.timerChapters - (S.chaptersDone || 0)} 章`;
+  return "听书中";
+}
 $("#timerChips").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-min]");
   if (!b) return;
   const min = +b.dataset.min;
   document.querySelectorAll("#timerChips button").forEach((x) => x.classList.toggle("active", x === b));
+  document.querySelectorAll("#chapterChips button").forEach((x) => x.classList.toggle("active", x.dataset.ch === "0"));
   clearInterval(timerTick); timerTick = null;
+  S.timerChapters = 0; S.chaptersDone = 0;
   if (!min) { S.timerEnd = 0; $("#playerSub").textContent = "听书中"; return; }
   S.timerEnd = Date.now() + min * 60000;
   const tick = () => {
     const left = S.timerEnd - Date.now();
     if (left <= 0) { stopPlay(); toast("定时时间到，已停止听书"); return; }
-    if (S.playing) $("#playerSub").textContent = "听书中 · 剩 " + fmtLeft(left);
+    if (S.playing) $("#playerSub").textContent = timerStatusText();
   };
   tick();
   timerTick = setInterval(tick, 1000);
   toast(`将在 ${min} 分钟后停止听书`);
 });
+$("#chapterChips").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-ch]");
+  if (!b) return;
+  const ch = +b.dataset.ch;
+  document.querySelectorAll("#chapterChips button").forEach((x) => x.classList.toggle("active", x === b));
+  document.querySelectorAll("#timerChips button").forEach((x) => x.classList.toggle("active", x.dataset.min === "0"));
+  clearInterval(timerTick); timerTick = null; S.timerEnd = 0;
+  S.chaptersDone = 0;
+  if (!ch) { S.timerChapters = 0; $("#playerSub").textContent = "听书中"; return; }
+  S.timerChapters = ch;
+  $("#playerSub").textContent = timerStatusText();
+  toast(`读完 ${ch} 章后停止听书`);
+});
+/* 章节推进时由播放链调用：按章节计时在此结算 */
+function chapterDone() {
+  if (!S.timerChapters) return;
+  S.chaptersDone = (S.chaptersDone || 0) + 1;
+  const left = S.timerChapters - S.chaptersDone;
+  if (left <= 0) { stopPlay(); toast("定时章节数已到，已停止听书"); return; }
+  $("#playerSub").textContent = `听书中 · 剩 ${left} 章`;
+}
 
 /* 逐句高亮：按字符占比把播放进度映射到段落内的句子 */
 function updateSegHighlight(p, ratio) {
@@ -618,7 +647,15 @@ function setPlayingUI(v) {
   $("#icPlay").classList.toggle("hidden", v);
   $("#icPause").classList.toggle("hidden", !v);
   S.playing = v;
+  updateBall();
   if ("mediaSession" in navigator) navigator.mediaSession.playbackState = v ? "playing" : "paused";
+}
+
+/* 听书悬浮球：听书时 / 阅读菜单呼出时显示（微信读书式） */
+function updateBall() {
+  const show = !!S.book && (S.playing || !!S.pausedPos || S.menuOpen);
+  $("#listenBall").classList.toggle("hidden", !show);
+  $("#listenBall").classList.toggle("live", !!S.playing);
 }
 
 async function getAudio(ch, p) {
@@ -627,7 +664,8 @@ async function getAudio(ch, p) {
   let text;
   if (ch === S.cur.ch && S.chapter) text = S.chapter.paras[p];
   else {
-    const data = S.chapterCache.get(ch) || await api(`/api/books/${S.book.id}/chapter/${ch}`);
+    const data = S.chapterCache.get(ch)
+      || (LOCAL_MODE ? await Store.getChapter(S.book.id, ch) : await api(`/api/books/${S.book.id}/chapter/${ch}`));
     S.chapterCache.set(ch, data);
     text = data.paras[p];
   }
@@ -645,16 +683,17 @@ async function getAudio(ch, p) {
   return url;
 }
 
-async function playFrom(ch, p) {
+async function playFrom(ch, p, s = 0) {
   if (!S.book) return;
   const token = ++S.playToken;
   if (LOCAL_MODE) await checkServer();
   if (ch !== S.cur.ch) await loadChapter(ch, p);
-  S.cur = { ch, p };
-  $("#playerBar").classList.remove("hidden");
+  S.cur = { ch, p, s };
+  S.pausedPos = null;
+  $("#playerSheet").classList.remove("hidden");
   saveProgressNow();
   setPlayingUI(true);
-  if (LOCAL_MODE && !serverAlive && nativeTTS()) return nativeChain(ch, p, token);
+  if (LOCAL_MODE && !serverAlive && nativeTTS()) return nativeChain(ch, p, s, token);
   try {
     const url = await getAudio(ch, p);
     if (token !== S.playToken) return;
@@ -680,21 +719,20 @@ async function playFrom(ch, p) {
   }
 }
 
-/* 离线链路：Capacitor 系统 TTS（AVSpeechSynthesizer / Android TextToSpeech） */
-async function nativeChain(ch, p, token) {
+/* 离线链路：系统 TTS 按句朗读（句子短，暂停/关闭立即生效） */
+async function nativeChain(ch, p, s, token) {
   while (token === S.playToken && S.book) {
-    let text;
-    if (ch === S.cur.ch && S.chapter) text = S.chapter.paras[p];
-    else {
+    if (ch !== S.cur.ch || !S.chapter) {
       const data = S.chapterCache.get(ch) || await Store.getChapter(S.book.id, ch).catch(() => null);
       if (!data) break;
       S.chapterCache.set(ch, data);
-      text = data.paras[p];
+      await loadChapter(ch, 0);
     }
-    if (text == null) break;
-    if (ch !== S.cur.ch) await loadChapter(ch, p);
-    S.cur = { ch, p };
-    updateSegHighlight(p, 0);
+    const segs = S.chapter?.segs[p] || [];
+    if (s >= segs.length) { p++; s = 0; continue; }
+    const text = segs[s];
+    S.cur = { ch, p, s };
+    updateSegHighlight(p, segs.length ? s / segs.length : 0);
     try {
       const opts = { text, lang: "zh-CN", rate: Math.max(0.5, Math.min(2, prefs.rate / 100)), pitch: 1 };
       const list = await nativeVoices();
@@ -703,12 +741,15 @@ async function nativeChain(ch, p, token) {
         if (idx >= 0) opts.voice = idx;
       }
       await nativeTTS().speak(opts);
-    } catch { await new Promise((r) => setTimeout(r, 800)); }
+    } catch { await new Promise((r) => setTimeout(r, 500)); }
     if (token !== S.playToken) return;
-    p++;
-    if (p >= (S.chapter?.paras.length || 0)) {
-      if (ch + 1 < S.book.chapters.length) { ch++; p = 0; }
-      else { setPlayingUI(false); toast("全书播完 🎉"); return; }
+    s++;
+    if (s >= (S.chapter?.segs[p]?.length || 0)) {
+      p++; s = 0;
+      if (p >= (S.chapter?.paras.length || 0)) {
+        if (ch + 1 < S.book.chapters.length) { ch++; p = 0; chapterDone(); }
+        else { setPlayingUI(false); toast("全书播完 🎉"); return; }
+      }
     }
   }
 }
@@ -728,13 +769,41 @@ function prefetchAround(ch, p, token) {
 function nextPara() {
   const paras = S.chapter?.paras.length || 0;
   if (S.cur.p + 1 < paras) playFrom(S.cur.ch, S.cur.p + 1);
-  else if (S.cur.ch + 1 < S.book.chapters.length) playFrom(S.cur.ch + 1, 0);
+  else if (S.cur.ch + 1 < S.book.chapters.length) { playFrom(S.cur.ch + 1, 0); chapterDone(); }
   else { setPlayingUI(false); toast("全书播完 🎉"); }
 }
 function prevPara() {
   if (S.cur.p > 0) playFrom(S.cur.ch, S.cur.p - 1);
   else if (S.cur.ch > 0) playFrom(S.cur.ch - 1, Math.max(0, (S.chapterCache.get(S.cur.ch - 1)?.paras.length || 1) - 1));
   else playFrom(S.cur.ch, 0);
+}
+
+/* 暂停：离线立即停当前句并记住位置；在线暂停音频流 */
+function pauseListening() {
+  if (LOCAL_MODE && !serverAlive && nativeTTS()) {
+    S.pausedPos = { ...S.cur };
+    S.playToken++;
+    try { nativeTTS().stop(); } catch {}
+    setPlayingUI(false);
+  } else {
+    S.playToken++;
+    audio.pause();
+    setPlayingUI(false);
+  }
+}
+function resumeListening() {
+  const token = ++S.playToken;
+  if (LOCAL_MODE && !serverAlive && nativeTTS()) {
+    if (S.pausedPos) {
+      const { ch, p, s } = S.pausedPos;
+      S.pausedPos = null;
+      setPlayingUI(true);
+      return nativeChain(ch, p, s || 0, token);
+    }
+    return playFrom(S.cur.ch, S.cur.p || 0, S.cur.s || 0);
+  }
+  if (audio.src && audio.paused) { setPlayingUI(true); audio.play().catch(() => {}); return; }
+  playFrom(S.cur.ch, S.cur.p || 0);
 }
 
 function stopPlay() {
@@ -745,31 +814,43 @@ function stopPlay() {
   try { audio.load(); } catch {}
   try { nativeTTS()?.stop?.(); } catch {} // 关键：停掉系统语音引擎，否则手机上声音关不掉
   track.querySelectorAll(".seg.on").forEach((el) => el.classList.remove("on")); // 关闭听书后取消正文高亮
-  clearInterval(timerTick); timerTick = null; S.timerEnd = 0; // 手动停止同时取消定时
+  clearInterval(timerTick); timerTick = null;
+  S.timerEnd = 0; S.timerChapters = 0; S.chaptersDone = 0; S.pausedPos = null; // 手动停止同时取消定时
   document.querySelectorAll("#timerChips button").forEach((x) => x.classList.toggle("active", x.dataset.min === "0"));
+  document.querySelectorAll("#chapterChips button").forEach((x) => x.classList.toggle("active", x.dataset.ch === "0"));
   $("#playerSub").textContent = "听书中";
 }
 
 $("#btnPlayToggle").addEventListener("click", () => {
-  if (S.playing) {
-    S.playToken++; // 暂停 = 作废未完成的 play 请求，防止其失败重试把播放复活
-    setPlayingUI(false);
-    audio.pause();
-  } else playFrom(S.cur.ch, S.cur.p);
+  if (S.playing) pauseListening(); else resumeListening();
 });
 $("#btnClosePlayer").addEventListener("click", () => {
   stopPlay();
-  $("#playerBar").classList.add("hidden");
+  $("#playerSheet").classList.add("hidden");
   toast("已关闭听书");
 });
 $("#btnNextPara").addEventListener("click", () => nextPara());
 $("#btnPrevPara").addEventListener("click", () => prevPara());
+
+/* 听书悬浮球：未播放时点击=从当前页开始听；播放中点击=展开/收起操作面板 */
+$("#listenBall").addEventListener("click", () => {
+  if (!S.playing && !S.pausedPos) {
+    playFrom(S.cur.ch, firstVisiblePara());
+  } else {
+    $("#playerSheet").classList.toggle("hidden");
+  }
+});
+function openPlayerSheet() { $("#playerSheet").classList.remove("hidden"); }
+function openVoiceSheet() { loadVoices().catch(() => {}); $("#voiceSheet").classList.remove("hidden"); $("#voiceMask").classList.remove("hidden"); }
+$("#psRate").addEventListener("click", openVoiceSheet);
+$("#psTimer").addEventListener("click", openVoiceSheet);
+
 audio.addEventListener("ended", () => { if (S.playing) nextPara(); });
 audio.addEventListener("error", () => { if (S.playing) { toast("音频加载失败，跳到下一段"); nextPara(); } });
 
 if ("mediaSession" in navigator) {
-  navigator.mediaSession.setActionHandler("play", () => playFrom(S.cur.ch, S.cur.p));
-  navigator.mediaSession.setActionHandler("pause", () => { setPlayingUI(false); audio.pause(); });
+  navigator.mediaSession.setActionHandler("play", () => resumeListening());
+  navigator.mediaSession.setActionHandler("pause", () => pauseListening());
   navigator.mediaSession.setActionHandler("previoustrack", () => prevPara());
   navigator.mediaSession.setActionHandler("nexttrack", () => nextPara());
 }
@@ -863,10 +944,9 @@ window.__szBack = () => {
 applyReaderPrefs(false);
 $("#rateRange").value = prefs.rate;
 $("#rateLabel").textContent = (prefs.rate / 100).toFixed(1) + "x";
-$("#voiceShort").textContent = VOICE_SHORT[prefs.voice] || "晓晓";
 if (LOCAL_MODE) checkServer();      // 后台预探测家里电脑，不阻塞首次听书
 if (nativeTTS()?.getVoices) nativeVoices(); // 预热系统 TTS 引擎，首次开播更快
 loadShelf();
 
 // 调试/自动化测试钩子
-window.__sz = { playFrom, goToPage, flipNext, flipPrev, toggleMenu, gotoChapter, state: S, audio };
+window.__sz = { playFrom, goToPage, flipNext, flipPrev, toggleMenu, gotoChapter, pauseListening, resumeListening, state: S, audio };

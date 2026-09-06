@@ -77,7 +77,8 @@ button { font-family: inherit; cursor: pointer; }
   position: absolute; inset: 0; overflow: hidden;
   background: var(--reader-bg); color: var(--reader-fg);
   touch-action: pan-y;
-  padding-top: calc(10px + var(--safe-top));
+  /* 顶部留出左上角章节名标识的空间 */
+  padding-top: calc(30px + var(--safe-top));
   padding-bottom: calc(14px + var(--safe-bottom));
   transition: filter .25s;
 }
@@ -120,14 +121,19 @@ button { font-family: inherit; cursor: pointer; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* 常显小标识：左上章节名、右下页码（不拦截点击，呼出菜单时隐藏） */
+/* 常显小标识：左上章节名、右下页码（不拦截点击，呼出菜单时隐藏）。
+   颜色取 --reader-fg：主题变量挂在 #reader 上，深色主题下同样可见 */
 .mini-top, .mini-bottom {
   position: absolute; z-index: 30; pointer-events: none;
-  font-size: 11px; line-height: 16px; color: var(--reader-fg); opacity: .5;
+  font-size: 11px; line-height: 16px; color: var(--reader-fg);
+  background: var(--reader-bg);
+  background: color-mix(in srgb, var(--reader-bg) 88%, transparent);
+  border-radius: 8px; padding: 3px 8px;
+  max-width: 60%;
 }
 .mini-top {
   top: calc(6px + var(--safe-top)); left: 14px;
-  max-width: 55%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .mini-bottom { bottom: calc(8px + var(--safe-bottom)); right: 14px; }
 #reader.menu-open .mini-top, #reader.menu-open .mini-bottom { opacity: 0; }
@@ -174,39 +180,59 @@ button { font-family: inherit; cursor: pointer; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---------- 听书播放条 ---------- */
-#playerBar {
-  position: absolute; left: 10px; right: 10px; bottom: calc(10px + var(--safe-bottom));
-  z-index: 38; display: flex; align-items: center; gap: 4px;
-  background: var(--panel);
-  background: color-mix(in srgb, var(--panel) 96%, transparent);
-  border: 1px solid var(--border); border-radius: 999px;
-  padding: 8px 14px 8px 8px; box-shadow: 0 8px 28px rgba(0,0,0,.16);
+/* ---------- 听书悬浮球 + 操作面板（微信读书式） ---------- */
+.listen-ball {
+  position: absolute; right: 18px; bottom: calc(78px + var(--safe-bottom));
+  z-index: 39; width: 54px; height: 54px; border-radius: 50%;
+  border: none; padding: 0;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 18px rgba(0,0,0,.28);
+}
+.listen-ball .svg-ic { width: 26px; height: 26px; }
+.listen-ball.live { animation: ballPulse 1.6s ease-in-out infinite; }
+@keyframes ballPulse {
+  0%, 100% { box-shadow: 0 6px 18px rgba(0,0,0,.28), 0 0 0 0 rgba(79,70,229,.35); }
+  50% { box-shadow: 0 6px 18px rgba(0,0,0,.28), 0 0 0 12px rgba(79,70,229,0); }
+}
+#playerSheet { z-index: 52; }
+.player-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 8px;
+}
+.player-title { flex: 1; min-width: 0; }
+.player-chapter {
+  font-size: 15px; font-weight: 700; color: var(--fg);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.player-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.player-controls {
+  display: flex; align-items: center; justify-content: center;
+  gap: 34px; padding: 14px 0 18px;
 }
 .pbtn {
-  width: 38px; height: 38px; border-radius: 50%; border: none; flex-shrink: 0;
+  width: 44px; height: 44px; border-radius: 50%; border: none; flex-shrink: 0;
   background: transparent; color: var(--fg);
   display: flex; align-items: center; justify-content: center;
 }
+.pbtn.big { width: 54px; height: 54px; }
+.pbtn.big .svg-ic { width: 30px; height: 30px; }
 .play-btn {
   width: 46px; height: 46px; border-radius: 50%; border: none; flex-shrink: 0;
   background: var(--accent); color: #fff; margin-right: 4px;
   display: flex; align-items: center; justify-content: center;
 }
-.play-btn .svg-ic { width: 24px; height: 24px; }
-.player-info { flex: 1; min-width: 0; text-align: left; }
-.player-chapter {
-  font-size: 13px; color: var(--fg);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.play-btn.big { width: 76px; height: 76px; margin: 0; }
+.play-btn.big .svg-ic { width: 36px; height: 36px; }
+.player-features {
+  display: flex; justify-content: space-around;
+  border-top: 1px solid var(--border); padding-top: 12px;
 }
-.player-sub { font-size: 11px; color: var(--muted); }
-.voice-chip {
-  flex-shrink: 0; display: flex; align-items: center; gap: 2px;
-  border: 1px solid var(--border); border-radius: 999px;
-  background: var(--accent-soft); color: var(--accent);
-  font-size: 13px; font-weight: 600; padding: 7px 10px 7px 14px;
+.feature-btn {
+  border: none; background: transparent; color: var(--fg);
+  font-size: 14px; padding: 8px 18px; border-radius: 10px;
 }
-.voice-chip .caret { width: 16px; height: 16px; }
+.feature-btn:active { background: rgba(128,128,128,.12); }
 
 /* ---------- 弹层 ---------- */
 .mask { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.4); }
@@ -299,7 +325,7 @@ body[data-theme="green"]  { --bg: #d9e8dc; --panel: #eef5f0; --fg: #1d3324; --bo
 body[data-theme="dark"]   { --bg: #0d0d0d; --panel: #18181a; --fg: #c9c9c9; --border: #2c2c2e; --accent: #7c7cf0; --accent-soft: #232336; }
 body[data-theme="dark"] .book-cover { box-shadow: 0 4px 14px rgba(0,0,0,.5); }
 
-#viewport[data-theme="white"] { --reader-bg: #ffffff; --reader-fg: #262626; --seg-hl: rgba(79,70,229,.15); }
-#viewport[data-theme="sepia"] { --reader-bg: #f5efdc; --reader-fg: #3b2f1e; --seg-hl: rgba(168,118,62,.18); }
-#viewport[data-theme="green"] { --reader-bg: #cde8d2; --reader-fg: #1d3324; --seg-hl: rgba(46,125,84,.18); }
-#viewport[data-theme="dark"]  { --reader-bg: #121212; --reader-fg: #a8a8a8; --seg-hl: rgba(255,214,102,.16); }
+#reader[data-theme="white"] { --reader-bg: #ffffff; --reader-fg: #262626; --seg-hl: rgba(79,70,229,.15); }
+#reader[data-theme="sepia"] { --reader-bg: #f5efdc; --reader-fg: #3b2f1e; --seg-hl: rgba(168,118,62,.18); }
+#reader[data-theme="green"] { --reader-bg: #cde8d2; --reader-fg: #1d3324; --seg-hl: rgba(46,125,84,.18); }
+#reader[data-theme="dark"]  { --reader-bg: #121212; --reader-fg: #a8a8a8; --seg-hl: rgba(255,214,102,.16); }

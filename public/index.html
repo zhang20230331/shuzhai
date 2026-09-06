@@ -17,7 +17,7 @@
 <!-- 书架 -->
 <div id="shelf" class="page">
   <header class="topbar">
-    <h1>书斋 <span class="ver">v1.3</span></h1>
+    <h1>书斋 <span class="ver">v1.4</span></h1>
     <div class="topbar-actions">
       <button id="btnStore" class="ghost-btn">名著书城</button>
       <button id="btnImportUrl" class="ghost-btn">链接导入</button>
@@ -76,28 +76,39 @@
     </div>
   </footer>
 
-  <!-- 听书播放条 -->
-  <div id="playerBar" class="hidden">
-    <button id="btnPrevPara" class="pbtn" title="上一句">
-      <svg viewBox="0 0 24 24" class="svg-ic"><path d="M7 6h2.4v12H7zM19 6v12l-9-6z"/></svg>
-    </button>
-    <button id="btnPlayToggle" class="play-btn" title="播放/暂停">
-      <svg viewBox="0 0 24 24" class="svg-ic" id="icPlay"><path d="M8 5v14l11-7z"/></svg>
-      <svg viewBox="0 0 24 24" class="svg-ic hidden" id="icPause"><path d="M6 5h4.2v14H6zM13.8 5H18v14h-4.2z"/></svg>
-    </button>
-    <button id="btnNextPara" class="pbtn" title="下一句">
-      <svg viewBox="0 0 24 24" class="svg-ic"><path d="M14.6 6H17v12h-2.4zM5 6l9 6-9 6z"/></svg>
-    </button>
-    <div class="player-info">
-      <div class="player-chapter" id="playerChapter"></div>
-      <div class="player-sub" id="playerSub">听书中</div>
+  <!-- 听书悬浮球（听书时 / 呼出菜单时显示） -->
+  <button id="listenBall" class="listen-ball hidden" title="听书">
+    <svg viewBox="0 0 24 24" class="svg-ic"><path d="M12 3a9 9 0 0 0-9 9v6a3 3 0 0 0 3 3h2a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H5v-.1a7 7 0 0 1 14 0V12h-3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h3a3 3 0 0 0 3-3v-6a9 9 0 0 0-9-9z"/></svg>
+  </button>
+
+  <!-- 听书操作面板（大布局，从底部弹出） -->
+  <div id="playerSheet" class="sheet hidden">
+    <div class="player-head">
+      <div class="player-title">
+        <div class="player-chapter" id="playerChapter"></div>
+        <div class="player-sub" id="playerSub">听书中</div>
+      </div>
+      <button id="btnClosePlayer" class="pbtn" title="关闭听书">
+        <svg viewBox="0 0 24 24" class="svg-ic"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>
+      </button>
     </div>
-    <button id="btnVoice" class="voice-chip"><span id="voiceShort">晓晓</span>
-      <svg viewBox="0 0 24 24" class="svg-ic caret"><path d="M7 10l5 5 5-5z"/></svg>
-    </button>
-    <button id="btnClosePlayer" class="pbtn" title="关闭听书">
-      <svg viewBox="0 0 24 24" class="svg-ic"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>
-    </button>
+    <div class="player-controls">
+      <button id="btnPrevPara" class="pbtn big" title="上一句">
+        <svg viewBox="0 0 24 24" class="svg-ic"><path d="M7 6h2.4v12H7zM19 6v12l-9-6z"/></svg>
+      </button>
+      <button id="btnPlayToggle" class="play-btn big" title="播放/暂停">
+        <svg viewBox="0 0 24 24" class="svg-ic" id="icPlay"><path d="M8 5v14l11-7z"/></svg>
+        <svg viewBox="0 0 24 24" class="svg-ic hidden" id="icPause"><path d="M6 5h4.2v14H6zM13.8 5H18v14h-4.2z"/></svg>
+      </button>
+      <button id="btnNextPara" class="pbtn big" title="下一句">
+        <svg viewBox="0 0 24 24" class="svg-ic"><path d="M14.6 6H17v12h-2.4zM5 6l9 6-9 6z"/></svg>
+      </button>
+    </div>
+    <div class="player-features">
+      <button id="btnVoice" class="feature-btn">音色</button>
+      <button id="psRate" class="feature-btn">语速</button>
+      <button id="psTimer" class="feature-btn">定时</button>
+    </div>
   </div>
 
   <!-- 音色/语速/定时 弹窗 -->
@@ -111,7 +122,7 @@
       <span id="rateLabel">1.0x</span>
     </div>
     <div class="sheet-row timer-row">
-      <span>定时关闭</span>
+      <span>按时间</span>
       <div class="timer-chips" id="timerChips">
         <button data-min="0" class="active">不限</button>
         <button data-min="5">5分</button>
@@ -119,6 +130,15 @@
         <button data-min="20">20分</button>
         <button data-min="30">30分</button>
         <button data-min="60">60分</button>
+      </div>
+    </div>
+    <div class="sheet-row timer-row">
+      <span>按章节</span>
+      <div class="timer-chips" id="chapterChips">
+        <button data-ch="0" class="active">不限</button>
+        <button data-ch="3">3章</button>
+        <button data-ch="5">5章</button>
+        <button data-ch="10">10章</button>
       </div>
     </div>
   </div>

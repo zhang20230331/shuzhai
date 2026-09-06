@@ -25,10 +25,14 @@ const VOICES = [
   { id: "zh-CN-YunjianNeural", name: "云健（浑厚男声）" },
   { id: "zh-CN-YunxiaNeural", name: "云夏（少年音）" },
   { id: "zh-CN-YunyangNeural", name: "云扬（播音男声）" },
+  { id: "zh-CN-YunyeNeural", name: "云野（沉稳男声）" },
+  { id: "zh-CN-XiaoyouNeural", name: "晓童（童声）" },
   { id: "zh-CN-liaoning-XiaobeiNeural", name: "晓北（东北女声）" },
   { id: "zh-CN-shaanxi-XiaoniNeural", name: "晓妮（陕西女声）" },
   { id: "zh-HK-HiuMaanNeural", name: "曉曼（粤语女声）" },
+  { id: "zh-HK-HiuGaaiNeural", name: "曉佳（粤语女声）" },
   { id: "zh-TW-HsiaoChenNeural", name: "筱臣（台湾女声）" },
+  { id: "zh-TW-YunJheNeural", name: "雲哲（台湾男声）" },
 ];
 
 // ---------- 数据读写 ----------
