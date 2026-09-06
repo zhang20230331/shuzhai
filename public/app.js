@@ -773,7 +773,8 @@ function setPlayingUI(v) {
 /* 听书悬浮球：听书时 / 阅读菜单呼出时显示（面板打开时隐藏，避免重叠） */
 function updateBall() {
   const sheetOpen = !$("#playerSheet").classList.contains("hidden");
-  const show = !!S.book && !sheetOpen && (S.playing || !!S.pausedPos || S.menuOpen);
+  // 悬浮球只在呼出菜单时显示（听书时收起面板后也不常驻，避免遮挡正文）
+  const show = !!S.book && !sheetOpen && S.menuOpen;
   $("#listenBall").classList.toggle("hidden", !show);
   $("#listenBall").classList.toggle("live", !!S.playing);
 }
@@ -1124,6 +1125,9 @@ let lastBackAt = 0;
 window.__szBack = () => {
   if (!$("#storeSheet").classList.contains("hidden")) { closeStore(); return true; }
   if (!$("#voiceSheet").classList.contains("hidden")) { closeVoice(); return true; }
+  if (!$("#rateSheet").classList.contains("hidden")) { closeRateSheet(); return true; }
+  if (!$("#timerSheet").classList.contains("hidden")) { closeTimerSheet(); return true; }
+  if (!$("#playerSheet").classList.contains("hidden")) { togglePlayerSheet(false); return true; }
   if (!$("#toc").classList.contains("hidden")) { closeToc(); return true; }
   if (!$("#settingsSheet").classList.contains("hidden")) { $("#settingsSheet").classList.add("hidden"); return true; }
   if (S.menuOpen) { toggleMenu(false); return true; }

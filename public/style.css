@@ -111,10 +111,9 @@ button { font-family: inherit; cursor: pointer; }
 .reader-top {
   top: 0; display: flex; align-items: center; gap: 8px;
   padding: calc(8px + var(--safe-top)) 10px 8px;
+  /* 纯色直写，不依赖 CSS 变量/color-mix：老 WebView 下绝无透明可能 */
   background: #ffffff;
-  background: var(--reader-bg, #ffffff);
-  background: color-mix(in srgb, var(--reader-bg, #ffffff) 96%, transparent);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #e6e6e2;
   transform: translateY(-105%);
 }
 .chapter-title {
@@ -126,9 +125,9 @@ button { font-family: inherit; cursor: pointer; }
    颜色取 --reader-fg：主题变量挂在 #reader 上，深色主题下同样可见 */
 .mini-top, .mini-bottom {
   position: absolute; z-index: 30; pointer-events: none;
-  font-size: 11px; line-height: 16px; color: var(--reader-fg, #262626);
-  background: var(--reader-bg, #ffffff);
-  background: color-mix(in srgb, var(--reader-bg, #ffffff) 88%, transparent);
+  font-size: 11px; line-height: 16px; color: #262626;
+  /* 纯色直写：老 WebView 下也绝无透明可能 */
+  background: #ffffff;
   border-radius: 8px; padding: 3px 8px;
   max-width: 60%;
 }
@@ -140,10 +139,9 @@ button { font-family: inherit; cursor: pointer; }
 #reader.menu-open .mini-top, #reader.menu-open .mini-bottom { opacity: 0; }
 .reader-menu {
   bottom: 0;
+  /* 纯色直写，不依赖 CSS 变量/color-mix：老 WebView 下绝无透明可能 */
   background: #ffffff;
-  background: var(--reader-bg, #ffffff);
-  background: color-mix(in srgb, var(--reader-bg, #ffffff) 96%, transparent);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid #e6e6e2;
   transform: translateY(105%);
   padding-bottom: var(--safe-bottom);
 }
@@ -386,3 +384,13 @@ body[data-theme="dark"] .book-cover { box-shadow: 0 4px 14px rgba(0,0,0,.5); }
 #reader[data-theme="sepia"] { --reader-bg: #f5efdc; --reader-fg: #3b2f1e; --seg-hl: rgba(168,118,62,.18); }
 #reader[data-theme="green"] { --reader-bg: #cde8d2; --reader-fg: #1d3324; --seg-hl: rgba(46,125,84,.18); }
 #reader[data-theme="dark"]  { --reader-bg: #121212; --reader-fg: #a8a8a8; --seg-hl: rgba(255,214,102,.16); }
+
+/* 操作栏/常显标识的纯色主题覆盖（同样纯色直写，无变量依赖） */
+#reader[data-theme="white"] .reader-top, #reader[data-theme="white"] .reader-menu { background: #ffffff; }
+#reader[data-theme="sepia"] .reader-top, #reader[data-theme="sepia"] .reader-menu { background: #f5efdc; border-color: #e2d8c0; }
+#reader[data-theme="green"] .reader-top, #reader[data-theme="green"] .reader-menu { background: #cde8d2; border-color: #c2d6c6; }
+#reader[data-theme="dark"]  .reader-top, #reader[data-theme="dark"]  .reader-menu { background: #121212; border-color: #2c2c2e; }
+#reader[data-theme="white"] .mini-top, #reader[data-theme="white"] .mini-bottom { background: #ffffff; color: #262626; }
+#reader[data-theme="sepia"] .mini-top, #reader[data-theme="sepia"] .mini-bottom { background: #f5efdc; color: #3b2f1e; }
+#reader[data-theme="green"] .mini-top, #reader[data-theme="green"] .mini-bottom { background: #cde8d2; color: #1d3324; }
+#reader[data-theme="dark"]  .mini-top, #reader[data-theme="dark"]  .mini-bottom { background: #121212; color: #a8a8a8; }
