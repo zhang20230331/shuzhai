@@ -362,6 +362,7 @@ function backToShelf() {
   $("#shelf").classList.remove("hidden");
   syncSystemBars(); // 回到书架，状态栏颜色跟回底色
   updateBall();
+  try { window.AndroidMedia?.hide?.(); } catch {} // 通知栏媒体卡片一并收起
   S.book = null; S.chapter = null; S.chapterCache.clear();
   track.innerHTML = "";
   loadShelf();
@@ -403,7 +404,10 @@ function renderToc() {
   const list = $("#tocList");
   list.innerHTML = "";
   $("#tocCount").textContent = `共 ${S.book.chapters.length} 章`;
+  const kw = ($("#tocSearch").value || "").trim().toLowerCase();
+  let shown = 0;
   S.book.chapters.forEach((c, i) => {
+    if (kw && !String(c.title).toLowerCase().includes(kw)) return;
     const b = document.createElement("button");
     b.className = "toc-item" + (i === S.cur.ch ? " current" : "");
     b.textContent = c.title;
@@ -413,7 +417,14 @@ function renderToc() {
       gotoChapter(i, {});
     });
     list.appendChild(b);
+    shown++;
   });
+  if (!shown) {
+    const d = document.createElement("div");
+    d.className = "toc-empty";
+    d.textContent = "没有匹配的章节";
+    list.appendChild(d);
+  }
 }
 
 /* 进度保存 */
@@ -437,17 +448,14 @@ function closeToc() { $("#toc").classList.add("hidden"); $("#tocMask").classList
 $("#btnToc").addEventListener("click", () => {
   $("#toc").classList.remove("hidden");
   $("#tocMask").classList.remove("hidden");
+  renderToc();
   const cur = $("#tocList .toc-item.current");
   if (cur) cur.scrollIntoView({ block: "center" });
 });
 $("#tocMask").addEventListener("click", closeToc);
-
-/* 目录正序/倒序 */
-let tocDesc = false;
-$("#tocOrder").addEventListener("click", () => {
-  tocDesc = !tocDesc;
-  $("#tocOrder").textContent = tocDesc ? "正序" : "倒序";
-  $("#tocList").style.flexDirection = tocDesc ? "column-reverse" : "column";
+/* 章节名搜索：输入即过滤 */
+$("#tocSearch").addEventListener("input", () => {
+  renderToc();
   const cur = $("#tocList .toc-item.current");
   if (cur) cur.scrollIntoView({ block: "center" });
 });
@@ -496,67 +504,96 @@ window.addEventListener("resize", () => {
 /* ---------------- 听书播放器 ---------------- */
 const VOICE_SHORT = { "zh-CN-XiaoxiaoNeural": "晓晓", "zh-CN-XiaoyiNeural": "晓伊", "zh-CN-YunxiNeural": "云希", "zh-CN-YunjianNeural": "云健", "zh-CN-YunxiaNeural": "云夏", "zh-CN-YunyangNeural": "云扬", "zh-CN-YunyeNeural": "云野", "zh-CN-XiaoyouNeural": "晓童", "zh-CN-liaoning-XiaobeiNeural": "晓北", "zh-CN-shaanxi-XiaoniNeural": "晓妮", "zh-HK-HiuMaanNeural": "曉曼", "zh-HK-HiuGaaiNeural": "曉佳", "zh-TW-HsiaoChenNeural": "筱臣", "zh-TW-YunJheNeural": "雲哲" };
 
-/* 系统音色（离线可用）：列表顺序稳定，speak(voice: 索引) 按此索引选择 */
+/* 系统音色（离线可用）：列表顺序稳定，speak(voice: 索引) 按此索引选择。
+   部分手机首次 getVoices 返回空/挂起：带重试 + 超时，绝不卡住弹窗 */
 let nativeVoiceList = null;
 async function nativeVoices() {
   const tts = nativeTTS();
   if (!tts?.getVoices) return null;
-  if (!nativeVoiceList) {
-    try { nativeVoiceList = (await tts.getVoices()).voices || []; } catch { nativeVoiceList = []; }
+  if (nativeVoiceList) return nativeVoiceList;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await Promise.race([
+        tts.getVoices(),
+        new Promise((res) => setTimeout(() => res(null), 1500)),
+      ]);
+      const list = (r && r.voices) || [];
+      if (list.length) { nativeVoiceList = list; return list; }
+    } catch { break; }
+    await new Promise((res) => setTimeout(res, 400));
   }
-  return nativeVoiceList;
+  nativeVoiceList = [];
+  return [];
 }
 const voiceLabel = (v) => {
   const n = String(v.name || "系统音色");
   return n.length <= 16 ? n : (n.split(/[.:]/).filter(Boolean).pop() || n).slice(0, 16);
 };
+const CHECK_SVG = '<svg class="v-check" viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
 
 async function loadVoices() {
   const grid = $("#voiceGrid");
-  if (grid.children.length) return;
+  const rebuild = !grid.dataset.loaded;
+  if (grid.children.length && !rebuild) return;
+  grid.innerHTML = '<div class="voice-loading">正在获取音色…</div>';
   if (LOCAL_MODE) await checkServer();
-  if (LOCAL_MODE && !serverAlive) {
-    // 离线：列出手机系统 TTS 自带的中文音色，可真实切换
+  const offline = LOCAL_MODE && !serverAlive;
+  if (offline) {
     const list = await nativeVoices();
-    const zh = (list || []).filter((v) => String(v.lang || "").toLowerCase().startsWith("zh"));
-    const pool = zh.length ? zh : (list || []);
+    if (!list) { grid.innerHTML = '<div class="voice-loading">当前为网页模式，音色跟随浏览器</div>'; return; }
+    const zh = list.filter((v) => String(v.lang || "").toLowerCase().startsWith("zh"));
+    const pool = zh.length ? zh : list;
+    grid.innerHTML = "";
     if (!pool.length) {
+      $("#voiceHint").textContent = "未检测到可选音色，将使用系统默认";
       const b = document.createElement("button");
       b.className = "voice-item active";
-      b.style.gridColumn = "1 / -1";
-      b.textContent = "系统音色";
+      b.innerHTML = '<span>系统默认音色</span>' + CHECK_SVG;
       grid.appendChild(b);
       return;
     }
+    $("#voiceHint").textContent = "系统音色 · " + pool.length + " 个";
     pool.forEach((v) => {
       const b = document.createElement("button");
       b.className = "voice-item" + (v.name === prefs.nativeVoice ? " active" : "");
-      b.textContent = voiceLabel(v);
+      b.innerHTML = `<span>${esc(voiceLabel(v))}</span>` + (v.name === prefs.nativeVoice ? CHECK_SVG : "");
       b.title = `${v.name} (${v.lang})`;
       b.addEventListener("click", () => {
         prefs.nativeVoice = v.name;
-        grid.querySelectorAll(".voice-item").forEach((x) => x.classList.toggle("active", x === b));
-        if (S.playing) playFrom(S.cur.ch, S.cur.p);
+        grid.querySelectorAll(".voice-item").forEach((x) => {
+          x.classList.toggle("active", x === b);
+          x.querySelector(".v-check")?.remove();
+        });
+        b.insertAdjacentHTML("beforeend", CHECK_SVG);
+        if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
       });
       grid.appendChild(b);
     });
+    grid.dataset.loaded = "1";
     return;
   }
+  $("#voiceHint").textContent = "Edge 在线音色";
   const voices = await api(`${SERVER}/api/voices`);
+  grid.innerHTML = "";
   voices.forEach((v) => {
     const b = document.createElement("button");
     b.className = "voice-item" + (v.id === prefs.voice ? " active" : "");
-    b.textContent = VOICE_SHORT[v.id] || v.name;
+    b.innerHTML = `<span>${esc(VOICE_SHORT[v.id] || v.name)}</span>` + (v.id === prefs.voice ? CHECK_SVG : "");
     b.dataset.id = v.id;
     b.addEventListener("click", () => {
       prefs.voice = v.id;
       S.audioCache.forEach((u) => URL.revokeObjectURL(u));
       S.audioCache.clear();
-      grid.querySelectorAll(".voice-item").forEach((x) => x.classList.toggle("active", x.dataset.id === v.id));
-      if (S.playing) playFrom(S.cur.ch, S.cur.p);
+      grid.querySelectorAll(".voice-item").forEach((x) => {
+        x.classList.toggle("active", x.dataset.id === v.id);
+        x.querySelector(".v-check")?.remove();
+      });
+      b.insertAdjacentHTML("beforeend", CHECK_SVG);
+      if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
     });
     grid.appendChild(b);
   });
+  grid.dataset.loaded = "1";
 }
 $("#btnVoice").addEventListener("click", openVoiceSheet);
 function closeVoice() { $("#voiceSheet").classList.add("hidden"); $("#voiceMask").classList.add("hidden"); }
@@ -648,14 +685,22 @@ function setPlayingUI(v) {
   $("#icPause").classList.toggle("hidden", !v);
   S.playing = v;
   updateBall();
+  updateMediaState();
   if ("mediaSession" in navigator) navigator.mediaSession.playbackState = v ? "playing" : "paused";
 }
 
-/* 听书悬浮球：听书时 / 阅读菜单呼出时显示（微信读书式） */
+/* 听书悬浮球：听书时 / 阅读菜单呼出时显示（面板打开时隐藏，避免重叠） */
 function updateBall() {
-  const show = !!S.book && (S.playing || !!S.pausedPos || S.menuOpen);
+  const sheetOpen = !$("#playerSheet").classList.contains("hidden");
+  const show = !!S.book && !sheetOpen && (S.playing || !!S.pausedPos || S.menuOpen);
   $("#listenBall").classList.toggle("hidden", !show);
   $("#listenBall").classList.toggle("live", !!S.playing);
+}
+function togglePlayerSheet(force) {
+  const sheet = $("#playerSheet");
+  const open = force !== undefined ? force : sheet.classList.contains("hidden");
+  sheet.classList.toggle("hidden", !open);
+  updateBall();
 }
 
 async function getAudio(ch, p) {
@@ -690,7 +735,7 @@ async function playFrom(ch, p, s = 0) {
   if (ch !== S.cur.ch) await loadChapter(ch, p);
   S.cur = { ch, p, s };
   S.pausedPos = null;
-  $("#playerSheet").classList.remove("hidden");
+  togglePlayerSheet(true);
   saveProgressNow();
   setPlayingUI(true);
   if (LOCAL_MODE && !serverAlive && nativeTTS()) return nativeChain(ch, p, s, token);
@@ -824,10 +869,9 @@ function stopPlay() {
 $("#btnPlayToggle").addEventListener("click", () => {
   if (S.playing) pauseListening(); else resumeListening();
 });
+// ✕ 只收起面板：听书继续，可从悬浮球再唤出；彻底关闭用播放键暂停
 $("#btnClosePlayer").addEventListener("click", () => {
-  stopPlay();
-  $("#playerSheet").classList.add("hidden");
-  toast("已关闭听书");
+  togglePlayerSheet(false);
 });
 $("#btnNextPara").addEventListener("click", () => nextPara());
 $("#btnPrevPara").addEventListener("click", () => prevPara());
@@ -836,14 +880,36 @@ $("#btnPrevPara").addEventListener("click", () => prevPara());
 $("#listenBall").addEventListener("click", () => {
   if (!S.playing && !S.pausedPos) {
     playFrom(S.cur.ch, firstVisiblePara());
+    togglePlayerSheet(true);
   } else {
-    $("#playerSheet").classList.toggle("hidden");
+    togglePlayerSheet();
   }
 });
-function openPlayerSheet() { $("#playerSheet").classList.remove("hidden"); }
+function openPlayerSheet() { togglePlayerSheet(true); }
 function openVoiceSheet() { loadVoices().catch(() => {}); $("#voiceSheet").classList.remove("hidden"); $("#voiceMask").classList.remove("hidden"); }
 $("#psRate").addEventListener("click", openVoiceSheet);
 $("#psTimer").addEventListener("click", openVoiceSheet);
+
+/* 锁屏/通知栏媒体卡片：元数据 + 原生通知桥 */
+function updateMediaState() {
+  if (!("mediaSession" in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: S.chapter?.title || "听书中",
+      artist: S.book?.name || "书斋",
+      album: "书斋",
+    });
+  } catch {}
+  try { window.AndroidMedia?.set?.(S.book?.name || "书斋", S.chapter?.title || "", S.playing); } catch {}
+}
+window.__szMedia = (action) => {
+  if (!S.book) return;
+  if (action === "play") resumeListening();
+  else if (action === "pause") pauseListening();
+  else if (action === "next") nextPara();
+  else if (action === "prev") prevPara();
+};
+try { window.AndroidMedia?.hide?.(); } catch {}
 
 audio.addEventListener("ended", () => { if (S.playing) nextPara(); });
 audio.addEventListener("error", () => { if (S.playing) { toast("音频加载失败，跳到下一段"); nextPara(); } });

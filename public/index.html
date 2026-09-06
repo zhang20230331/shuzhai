@@ -17,7 +17,7 @@
 <!-- 书架 -->
 <div id="shelf" class="page">
   <header class="topbar">
-    <h1>书斋 <span class="ver">v1.4</span></h1>
+    <h1>书斋 <span class="ver">v1.5</span></h1>
     <div class="topbar-actions">
       <button id="btnStore" class="ghost-btn">名著书城</button>
       <button id="btnImportUrl" class="ghost-btn">链接导入</button>
@@ -111,11 +111,10 @@
     </div>
   </div>
 
-  <!-- 音色/语速/定时 弹窗 -->
+  <!-- 音色/语速/定时 弹窗（半页，仅听书设置） -->
   <div id="voiceMask" class="mask hidden"></div>
   <div id="voiceSheet" class="sheet hidden">
-    <div class="sheet-head">朗读音色</div>
-    <div id="voiceGrid" class="voice-grid"></div>
+    <div class="sheet-head">听书设置</div>
     <div class="sheet-row speed-row">
       <span>语速</span>
       <input type="range" id="rateRange" min="50" max="200" step="10" value="100">
@@ -141,15 +140,15 @@
         <button data-ch="10">10章</button>
       </div>
     </div>
+    <div class="sheet-head" style="margin-top:8px">朗读音色 <span id="voiceHint" style="font-size:11px;font-weight:400;color:var(--muted)"></span></div>
+    <div id="voiceGrid" class="voice-list"></div>
   </div>
 
   <!-- 目录抽屉 -->
   <div id="tocMask" class="mask hidden"></div>
   <aside id="toc" class="drawer hidden">
-    <div class="drawer-head">
-      <span>目录 <span id="tocCount"></span></span>
-      <button id="tocOrder" class="toc-order">倒序</button>
-    </div>
+    <div class="drawer-head">目录 <span id="tocCount"></span></div>
+    <div class="toc-search"><input id="tocSearch" type="search" placeholder="搜索章节名称" autocomplete="off"></div>
     <div id="tocList"></div>
   </aside>
 
