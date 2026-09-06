@@ -111,8 +111,9 @@ button { font-family: inherit; cursor: pointer; }
 .reader-top {
   top: 0; display: flex; align-items: center; gap: 8px;
   padding: calc(8px + var(--safe-top)) 10px 8px;
-  background: var(--reader-bg);
-  background: color-mix(in srgb, var(--reader-bg) 96%, transparent);
+  background: #ffffff;
+  background: var(--reader-bg, #ffffff);
+  background: color-mix(in srgb, var(--reader-bg, #ffffff) 96%, transparent);
   border-bottom: 1px solid var(--border);
   transform: translateY(-105%);
 }
@@ -125,9 +126,9 @@ button { font-family: inherit; cursor: pointer; }
    颜色取 --reader-fg：主题变量挂在 #reader 上，深色主题下同样可见 */
 .mini-top, .mini-bottom {
   position: absolute; z-index: 30; pointer-events: none;
-  font-size: 11px; line-height: 16px; color: var(--reader-fg);
-  background: var(--reader-bg);
-  background: color-mix(in srgb, var(--reader-bg) 88%, transparent);
+  font-size: 11px; line-height: 16px; color: var(--reader-fg, #262626);
+  background: var(--reader-bg, #ffffff);
+  background: color-mix(in srgb, var(--reader-bg, #ffffff) 88%, transparent);
   border-radius: 8px; padding: 3px 8px;
   max-width: 60%;
 }
@@ -139,8 +140,9 @@ button { font-family: inherit; cursor: pointer; }
 #reader.menu-open .mini-top, #reader.menu-open .mini-bottom { opacity: 0; }
 .reader-menu {
   bottom: 0;
-  background: var(--reader-bg);
-  background: color-mix(in srgb, var(--reader-bg) 96%, transparent);
+  background: #ffffff;
+  background: var(--reader-bg, #ffffff);
+  background: color-mix(in srgb, var(--reader-bg, #ffffff) 96%, transparent);
   border-top: 1px solid var(--border);
   transform: translateY(105%);
   padding-bottom: var(--safe-bottom);
@@ -182,8 +184,9 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- 听书悬浮球 + 操作面板（微信读书式） ---------- */
 .listen-ball {
-  position: absolute; right: 18px; bottom: calc(78px + var(--safe-bottom));
-  z-index: 39; width: 54px; height: 54px; border-radius: 50%;
+  position: absolute; right: 16px; bottom: calc(112px + var(--safe-bottom));
+  z-index: 45; /* 高于呼出式底栏(z40)，否则会被菜单栏压住 */
+  width: 54px; height: 54px; border-radius: 50%;
   border: none; padding: 0;
   background: var(--accent); color: #fff;
   display: flex; align-items: center; justify-content: center;

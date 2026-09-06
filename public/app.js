@@ -1014,5 +1014,32 @@ if (LOCAL_MODE) checkServer();      // 后台预探测家里电脑，不阻塞�
 if (nativeTTS()?.getVoices) nativeVoices(); // 预热系统 TTS 引擎，首次开播更快
 loadShelf();
 
+// 诊断模式：连点 5 下版本号，弹出设备真实状态（用于远程排查）
+let verTaps = 0, verTimer = null;
+document.querySelector(".topbar h1 .ver").addEventListener("click", () => {
+  verTaps++;
+  clearTimeout(verTimer);
+  verTimer = setTimeout(() => { verTaps = 0; }, 1600);
+  if (verTaps >= 5) { verTaps = 0; showDiagnostics(); }
+});
+async function showDiagnostics() {
+  const nv = await nativeVoices();
+  const rt = document.querySelector(".reader-top");
+  const cs = rt ? getComputedStyle(rt) : null;
+  const info = [
+    "版本: " + (document.querySelector(".topbar h1 .ver")?.textContent || "?"),
+    "WebView: " + navigator.userAgent.slice(-70),
+    "阅读主题: " + (document.getElementById("reader").dataset.theme || "未设置"),
+    "顶栏背景: " + (cs ? cs.backgroundColor : "元素缺失"),
+    "顶栏层叠: z=" + (cs ? cs.zIndex : "?"),
+    "本地模式: " + LOCAL_MODE + " · 在线: " + serverAlive,
+    "TTS插件: " + (nativeTTS() ? "有" : "无") + " · 系统音色数: " + (nv ? nv.length : "未获取"),
+    "音色列表: " + (nv && nv.length ? nv.slice(0, 3).map(voiceLabel).join(", ") + "…" : (nv ? "空" : "-")),
+    "悬浮球位置: " + (document.getElementById("listenBall") ? getComputedStyle(document.getElementById("listenBall")).bottom + " z" + getComputedStyle(document.getElementById("listenBall")).zIndex : "-"),
+  ].join("\n");
+  $("#errMsg").textContent = info;
+  $("#errPanel").classList.remove("hidden");
+}
+
 // 调试/自动化测试钩子
 window.__sz = { playFrom, goToPage, flipNext, flipPrev, toggleMenu, gotoChapter, pauseListening, resumeListening, state: S, audio };
