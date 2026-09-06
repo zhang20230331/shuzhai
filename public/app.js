@@ -573,7 +573,7 @@ async function loadVoices() {
           x.querySelector(".v-check")?.remove();
         });
         b.insertAdjacentHTML("beforeend", CHECK_SVG);
-        if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
+        // 不打断当前句：下一句自动用新音色
       });
       grid.appendChild(b);
     });
@@ -591,15 +591,15 @@ function renderNativeVoices(pool) {
     b.className = "voice-item" + (v.name === prefs.nativeVoice ? " active" : "");
     b.innerHTML = `<span>${esc(voiceLabel(v))}</span>` + (v.name === prefs.nativeVoice ? CHECK_SVG : "");
     b.title = `${v.name} (${v.lang})`;
-    b.addEventListener("click", () => {
-      prefs.nativeVoice = v.name;
-      grid.querySelectorAll(".voice-item").forEach((x) => {
-        x.classList.toggle("active", x === b);
-        x.querySelector(".v-check")?.remove();
+      b.addEventListener("click", () => {
+        prefs.nativeVoice = v.name;
+        grid.querySelectorAll(".voice-item").forEach((x) => {
+          x.classList.toggle("active", x === b);
+          x.querySelector(".v-check")?.remove();
+        });
+        b.insertAdjacentHTML("beforeend", CHECK_SVG);
+        // 不打断当前句：下一句自动用新音色
       });
-      b.insertAdjacentHTML("beforeend", CHECK_SVG);
-      if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
-    });
     grid.appendChild(b);
   });
 }
@@ -628,10 +628,9 @@ $("#btnListen").addEventListener("click", async () => {
 $("#rateRange").addEventListener("input", (e) => { $("#rateLabel").textContent = (+e.target.value / 100).toFixed(1) + "x"; });
 $("#rateRange").addEventListener("change", (e) => {
   prefs.rate = +e.target.value;
-  // 清掉旧语速的预取音频，立即按新语速重新合成当前句
+  // 丢弃旧语速的预取音频即可，不打断当前句：下一句自动用新语速，切换零等待
   S.audioCache.forEach((u) => URL.revokeObjectURL(u));
   S.audioCache.clear();
-  if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
 });
 
 /* 定时关闭听书：按时间 / 按章节（番茄式） */
@@ -893,11 +892,9 @@ function stopPlay() {
 $("#btnPlayToggle").addEventListener("click", () => {
   if (S.playing) pauseListening(); else resumeListening();
 });
-// ✕ = 关闭听书：停止播放、清高亮清定时（重新开始点悬浮球）
+// ✕ = 收起面板：听书不受影响，开关只由播放键控制（悬浮球可随时唤回）
 $("#btnClosePlayer").addEventListener("click", () => {
-  stopPlay();
   togglePlayerSheet(false);
-  toast("已关闭听书");
 });
 $("#btnNextPara").addEventListener("click", () => nextPara());
 $("#btnPrevPara").addEventListener("click", () => prevPara());
