@@ -253,6 +253,7 @@ async function gotoChapter(n, opts = {}) {
   } finally {
     S.loading = false;
     showLoading(false);
+    if (pendingNav && S.book) { const d = pendingNav; pendingNav = 0; setTimeout(() => chapterNav(d), 30); }
   }
 }
 
@@ -451,8 +452,23 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && S.b
 window.addEventListener("pagehide", () => { if (S.book) saveProgressNow(); });
 
 /* 章节按钮 */
-$("#btnPrevChapter").addEventListener("click", () => { stopPlay(); gotoChapter(S.cur.ch - 1, { lastPage: true }); });
-$("#btnNextChapter").addEventListener("click", () => { stopPlay(); gotoChapter(S.cur.ch + 1, {}); });
+/* 章节切换：听书中切章继续播新章节；暂停/未播放时只移动视图（暂停位置保留，恢复时回原章）；
+   加载中连点会排队补跳 */
+let pendingNav = 0;
+function chapterNav(dir) {
+  if (!S.book) return;
+  if (S.loading) { pendingNav = dir; return; } // 加载中先记下，加载完补跳
+  const target = S.cur.ch + dir;
+  if (target < 0) { toast("已经是第一章了"); return; }
+  if (target >= S.book.chapters.length) { toast("已经是最后一章了"); return; }
+  if (S.playing) {
+    playFrom(target, 0); // 播放无缝切到新章节开头
+  } else {
+    gotoChapter(target, { lastPage: dir < 0 });
+  }
+}
+$("#btnPrevChapter").addEventListener("click", () => chapterNav(-1));
+$("#btnNextChapter").addEventListener("click", () => chapterNav(1));
 $("#pageSlider").addEventListener("input", (e) => { if (S.playing) S.follow = false; goToPage(+e.target.value - 1); });
 
 /* 目录 / 设置 / 音色弹窗 */
@@ -583,7 +599,8 @@ async function loadVoices() {
           x.querySelector(".v-check")?.remove();
         });
         b.insertAdjacentHTML("beforeend", CHECK_SVG);
-        // 不打断当前句：下一句自动用新音色
+        // 立即切换：从当前句重播（服务端重新合成当前句）
+        if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
       });
       grid.appendChild(b);
     });
@@ -608,7 +625,8 @@ function renderNativeVoices(pool) {
           x.querySelector(".v-check")?.remove();
         });
         b.insertAdjacentHTML("beforeend", CHECK_SVG);
-        // 不打断当前句：下一句自动用新音色
+        // 立即切换：从当前句重播（新音色马上能听到）
+        if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
       });
     grid.appendChild(b);
   });
@@ -634,13 +652,15 @@ $("#btnListen").addEventListener("click", async () => {
   toggleMenu(false);
   // 从当前页第一个段落开始读（番茄式体验），而不是上次播放位置
   playFrom(S.cur.ch, firstVisiblePara());
+  togglePlayerSheet(true);
 });
 $("#rateRange").addEventListener("input", (e) => { $("#rateLabel").textContent = (+e.target.value / 100).toFixed(1) + "x"; });
 $("#rateRange").addEventListener("change", (e) => {
   prefs.rate = +e.target.value;
-  // 丢弃旧语速的预取音频即可，不打断当前句：下一句自动用新语速，切换零等待
+  // 清掉旧语速的预取音频，并从当前句立即按新语速重播
   S.audioCache.forEach((u) => URL.revokeObjectURL(u));
   S.audioCache.clear();
+  if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
 });
 
 /* 定时关闭听书：按时间 / 按章节（番茄式） */
@@ -775,7 +795,6 @@ async function playFrom(ch, p, s = 0) {
   S.cur = { ch, p, s };
   S.pausedPos = null;
   S.follow = true; // 新一次播放默认跟随高亮翻页
-  togglePlayerSheet(true);
   saveProgressNow();
   setPlayingUI(true);
   if (LOCAL_MODE && !serverAlive && nativeTTS()) return nativeChain(ch, p, s, token);
@@ -946,9 +965,11 @@ function stopPlay() {
 $("#btnPlayToggle").addEventListener("click", () => {
   if (S.playing) pauseListening(); else resumeListening();
 });
-// ✕ = 收起面板：听书不受影响，开关只由播放键控制（悬浮球可随时唤回）
+// ✕ = 关闭听书：停止播放、清高亮清定时、收起面板（重新开始点悬浮球或播放键）
 $("#btnClosePlayer").addEventListener("click", () => {
+  stopPlay();
   togglePlayerSheet(false);
+  toast("已关闭听书");
 });
 $("#btnNextPara").addEventListener("click", () => nextPara());
 $("#btnPrevPara").addEventListener("click", () => prevPara());
