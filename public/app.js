@@ -767,6 +767,7 @@ async function playFrom(ch, p, s = 0) {
     if (token !== S.playToken) return;
     audio.src = url;
     await audio.play();
+    S.synthFails = 0;
     updateSegHighlight(p, 0);
     prefetchAround(ch, p, token);
   } catch (e) {
@@ -782,13 +783,21 @@ async function playFrom(ch, p, s = 0) {
       }, 400);
       return;
     }
+    S.synthFails = (S.synthFails || 0) + 1;
+    if (S.synthFails >= 3) {
+      stopPlay();
+      showBookError("电脑语音合成连续失败。请确认：家里电脑已开机并运行听书服务、手机与电脑连同一网络；或暂时离开电脑网络时改用系统音色（离线）收听。");
+      return;
+    }
     toast("合成失败，2 秒后跳到下一段");
     setTimeout(() => { if (token === S.playToken) nextPara(); }, 2000);
   }
 }
 
-/* 离线链路：系统 TTS 按句朗读（句子短，暂停/关闭立即生效） */
+/* 离线链路：系统 TTS 按句朗读（句子短，暂停/关闭立即生效）。
+   朗读连续失败自动降级（弃用所选音色），仍失败则停止并给出原因——绝不无限跳句 */
 async function nativeChain(ch, p, s, token) {
+  let fails = 0, lastErr = "";
   while (token === S.playToken && S.book) {
     if (ch !== S.cur.ch || !S.chapter) {
       const data = S.chapterCache.get(ch) || await Store.getChapter(S.book.id, ch).catch(() => null);
@@ -799,18 +808,46 @@ async function nativeChain(ch, p, s, token) {
     const segs = S.chapter?.segs[p] || [];
     if (s >= segs.length) { p++; s = 0; continue; }
     const text = segs[s];
+    if (!text) { s++; continue; }
     S.cur = { ch, p, s };
     updateSegHighlight(p, segs.length ? s / segs.length : 0);
+    let spoke = false;
     try {
       const opts = { text, lang: "zh-CN", rate: Math.max(0.5, Math.min(2, prefs.rate / 100)), pitch: 1 };
       const list = await nativeVoices();
+      let vidx = -1;
       if (list && prefs.nativeVoice) {
-        const idx = list.findIndex((v) => v.name === prefs.nativeVoice);
-        if (idx >= 0) opts.voice = idx;
+        vidx = list.findIndex((v) => v.name === prefs.nativeVoice);
+        if (vidx >= 0) opts.voice = vidx;
       }
-      await nativeTTS().speak(opts);
-    } catch { await new Promise((r) => setTimeout(r, 500)); }
+      try {
+        await nativeTTS().speak(opts);
+      } catch (e) {
+        if (vidx < 0) throw e;
+        // 所选音色导致朗读失败：清除选择，用系统默认音色重试这句
+        prefs.nativeVoice = "";
+        delete opts.voice;
+        await nativeTTS().speak(opts);
+      }
+      spoke = true;
+    } catch (e) {
+      lastErr = (e && e.message) || String(e);
+    }
     if (token !== S.playToken) return;
+    if (!spoke) {
+      fails++;
+      if (fails >= 3) {
+        stopPlay();
+        showBookError("手机语音引擎连续朗读失败" + (lastErr ? "（" + lastErr + "）" : "") +
+          "。可能未安装中文语音数据：请到 系统设置 → 更多设置 → 语言与输入 → 文字转语音(TTS) 检查引擎与中文语音包；或在同一网络下打开电脑使用在线语音。");
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 300));
+      s++; // 跳过失败句继续，连续失败达上限即停止
+      if (s >= (S.chapter?.segs[p]?.length || 0)) { p++; s = 0; }
+      continue;
+    }
+    fails = 0;
     s++;
     if (s >= (S.chapter?.segs[p]?.length || 0)) {
       p++; s = 0;
