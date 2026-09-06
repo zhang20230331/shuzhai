@@ -10,14 +10,14 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=23">
 </head>
 <body>
 
 <!-- 书架 -->
 <div id="shelf" class="page">
   <header class="topbar">
-    <h1>书斋 <span class="ver">v2.2</span></h1>
+    <h1>书斋 <span class="ver">v2.3</span></h1>
     <div class="topbar-actions">
       <button id="btnStore" class="ghost-btn">名著书城</button>
       <button id="btnImportUrl" class="ghost-btn">链接导入</button>
@@ -81,8 +81,10 @@
     <svg viewBox="0 0 24 24" class="svg-ic"><path d="M12 3a9 9 0 0 0-9 9v6a3 3 0 0 0 3 3h2a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H5v-.1a7 7 0 0 1 14 0V12h-3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h3a3 3 0 0 0 3-3v-6a9 9 0 0 0-9-9z"/></svg>
   </button>
 
-  <!-- 听书操作面板（大布局，从底部弹出） -->
+  <!-- 听书操作面板（大布局，从底部弹出；✕/点空白仅收起，不打断听书） -->
+  <div id="playerMask" class="mask player-mask hidden"></div>
   <div id="playerSheet" class="sheet hidden">
+    <div class="player-grabber"></div>
     <div class="player-head">
       <div class="player-title">
         <div class="player-chapter" id="playerChapter"></div>
@@ -152,6 +154,13 @@
         <button data-ch="10">10章</button>
       </div>
     </div>
+    <div class="sheet-row timer-custom-row">
+      <span>自定义</span>
+      <div class="timer-custom">
+        <input id="timerCustomMin" type="number" min="1" max="720" placeholder="分钟数">
+        <button id="timerCustomBtn">开始</button>
+      </div>
+    </div>
   </div>
 
   <!-- 目录抽屉 -->
@@ -201,7 +210,7 @@
     </div>
   </div>
 <audio id="audio" preload="auto"></audio>
-<script src="local.js"></script>
-<script src="app.js"></script>
+<script src="local.js?v=23"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>

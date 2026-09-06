@@ -198,7 +198,24 @@ button { font-family: inherit; cursor: pointer; }
   0%, 100% { box-shadow: 0 6px 18px rgba(0,0,0,.28), 0 0 0 0 rgba(79,70,229,.35); }
   50% { box-shadow: 0 6px 18px rgba(0,0,0,.28), 0 0 0 12px rgba(79,70,229,0); }
 }
-#playerSheet { z-index: 52; }.player-head {
+#playerSheet { z-index: 52; }
+/* 听书面板的遮罩：z 低于面板、高于正文与呼出栏；点空白=收起面板（不打断听书） */
+.player-mask { z-index: 51; }
+.player-grabber {
+  width: 44px; height: 5px; border-radius: 3px;
+  background: var(--border); margin: -6px auto 12px;
+}
+.timer-custom-row .timer-custom { display: flex; gap: 8px; }
+.timer-custom input {
+  flex: 1; min-width: 0; box-sizing: border-box;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--panel); color: var(--fg);
+  padding: 9px 12px; font-size: 14px; outline: none;
+}
+.timer-custom button {
+  border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent);
+  border-radius: 10px; padding: 8px 16px; font-size: 13px; font-weight: 600;
+}.player-head {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px; margin-bottom: 8px;
 }

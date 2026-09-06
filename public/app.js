@@ -464,7 +464,7 @@ function chapterNav(dir) {
   if (S.playing) {
     playFrom(target, 0); // 播放无缝切到新章节开头
   } else {
-    gotoChapter(target, { lastPage: dir < 0 });
+    gotoChapter(target, {}); // 未播放时上一章/下一章都落到章节开头
   }
 }
 $("#btnPrevChapter").addEventListener("click", () => chapterNav(-1));
@@ -532,20 +532,22 @@ window.addEventListener("resize", () => {
 /* ---------------- 听书播放器 ---------------- */
 const VOICE_SHORT = { "zh-CN-XiaoxiaoNeural": "晓晓", "zh-CN-XiaoyiNeural": "晓伊", "zh-CN-YunxiNeural": "云希", "zh-CN-YunjianNeural": "云健", "zh-CN-YunxiaNeural": "云夏", "zh-CN-YunyangNeural": "云扬", "zh-CN-YunyeNeural": "云野", "zh-CN-XiaoyouNeural": "晓童", "zh-CN-liaoning-XiaobeiNeural": "晓北", "zh-CN-shaanxi-XiaoniNeural": "晓妮", "zh-HK-HiuMaanNeural": "曉曼", "zh-HK-HiuGaaiNeural": "曉佳", "zh-TW-HsiaoChenNeural": "筱臣", "zh-TW-YunJheNeural": "雲哲" };
 
-/* 系统音色（离线可用）：列表顺序稳定，speak(voice: 索引) 按此索引选择。
-   部分手机首次 getVoices 返回空/挂起：带重试 + 超时，绝不卡住弹窗 */
+/* 系统音色（离线可用）。注意：安卓插件的方法名是 getSupportedVoices（iOS/web 为 getVoices），
+   部分手机首次调用返回空/挂起：带重试 + 超时，绝不卡住弹窗 */
 let nativeVoiceList = null;
 async function nativeVoices() {
   const tts = nativeTTS();
-  if (!tts?.getVoices) return null;
+  if (!tts) return null;
   if (nativeVoiceList) return nativeVoiceList;
+  const fn = tts.getSupportedVoices || tts.getVoices; // 安卓/iOS 方法名不同
+  if (!fn) return null;
   for (let i = 0; i < 3; i++) {
     try {
       const r = await Promise.race([
-        tts.getVoices(),
+        fn.call(tts),
         new Promise((res) => setTimeout(() => res(null), 1500)),
       ]);
-      const list = (r && r.voices) || [];
+      const list = (r && (r.voices || r)) || [];
       if (list.length) { nativeVoiceList = list; return list; }
     } catch { break; }
     await new Promise((res) => setTimeout(res, 400));
@@ -711,6 +713,26 @@ function chapterDone() {
   if (left <= 0) { stopPlay(); toast("定时章节数已到，已停止听书"); return; }
   $("#playerSub").textContent = `听书中 · 剩 ${left} 章`;
 }
+
+/* 自定义分钟定时 */
+$("#timerCustomBtn").addEventListener("click", () => {
+  const mins = Math.round(+$("#timerCustomMin").value);
+  if (!mins || mins < 1 || mins > 720) { toast("请输入 1~720 分钟"); return; }
+  document.querySelectorAll("#timerChips button").forEach((x) => x.classList.toggle("active", x.dataset.min === "0"));
+  document.querySelectorAll("#chapterChips button").forEach((x) => x.classList.toggle("active", x.dataset.ch === "0"));
+  clearInterval(timerTick); timerTick = null;
+  S.timerChapters = 0; S.chaptersDone = 0;
+  S.timerEnd = Date.now() + mins * 60000;
+  const tick = () => {
+    const left = S.timerEnd - Date.now();
+    if (left <= 0) { stopPlay(); toast("定时时间到，已停止听书"); return; }
+    if (S.playing) $("#playerSub").textContent = timerStatusText();
+  };
+  tick();
+  timerTick = setInterval(tick, 1000);
+  toast(`将在 ${mins} 分钟后停止听书`);
+  closeTimerSheet();
+});
 
 /* 逐句高亮：音频流按字符占比映射；手动翻页后暂停自动跟随（点高亮句跳回） */
 function updateSegHighlight(p, ratio) {
@@ -965,11 +987,13 @@ function stopPlay() {
 $("#btnPlayToggle").addEventListener("click", () => {
   if (S.playing) pauseListening(); else resumeListening();
 });
-// ✕ = 关闭听书：停止播放、清高亮清定时、收起面板（重新开始点悬浮球或播放键）
+// ✕ = 只收起面板：听书不受影响，开关只由播放键控制（悬浮球可随时唤回）
 $("#btnClosePlayer").addEventListener("click", () => {
-  stopPlay();
   togglePlayerSheet(false);
-  toast("已关闭听书");
+});
+// 点面板外空白 = 同样只收起面板
+$("#playerMask").addEventListener("click", () => {
+  togglePlayerSheet(false);
 });
 $("#btnNextPara").addEventListener("click", () => nextPara());
 $("#btnPrevPara").addEventListener("click", () => prevPara());
@@ -1138,8 +1162,11 @@ async function showDiagnostics() {
     "顶栏背景: " + (cs ? cs.backgroundColor : "元素缺失"),
     "顶栏层叠: z=" + (cs ? cs.zIndex : "?"),
     "本地模式: " + LOCAL_MODE + " · 在线: " + serverAlive,
-    "TTS插件: " + (nativeTTS() ? "有" : "无") + " · 系统音色数: " + (nv ? nv.length : "未获取"),
+    "TTS插件: " + (nativeTTS() ? "有" : "无") +
+      (nativeTTS() ? " · 方法: " + (nativeTTS().getSupportedVoices ? "getSupportedVoices" : (nativeTTS().getVoices ? "getVoices" : "无音色方法")) : ""),
+    "系统音色数: " + (nv ? nv.length : "未获取"),
     "音色列表: " + (nv && nv.length ? nv.slice(0, 3).map(voiceLabel).join(", ") + "…" : (nv ? "空" : "-")),
+    "通知权限提示: 锁屏卡片需在系统设置允许本应用通知",
     "悬浮球位置: " + (document.getElementById("listenBall") ? getComputedStyle(document.getElementById("listenBall")).bottom + " z" + getComputedStyle(document.getElementById("listenBall")).zIndex : "-"),
   ].join("\n");
   $("#errMsg").textContent = info;
