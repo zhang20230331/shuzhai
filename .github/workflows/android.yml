@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["public/**", "android/**", ".github/workflows/android.yml"]
+    paths: ["public/**", "android/**", "scripts/**", ".github/workflows/android.yml"]
 
 jobs:
   build:
@@ -21,8 +21,19 @@ jobs:
         with:
           node-version: 22
 
+      # 内置离线语音模型/AAR 下载缓存（约 190MB），按脚本内容变化失效
+      - name: 缓存 TTS 资源
+        uses: actions/cache@v4
+        with:
+          path: scripts/.tts-cache
+          key: tts-${{ hashFiles('scripts/setup_tts.py') }}
+
       - name: 安装依赖
         run: set -o pipefail; npm ci 2>&1 | tee npm.log
+
+      # 下载 sherpa-onnx AAR + Kokoro int8 模型并部署进 android 工程（含缓存命中则秒过）
+      - name: 部署离线语音资源
+        run: set -o pipefail; python3 scripts/setup_tts.py 2>&1 | tee tts-setup.log
 
       - name: 同步 Web 资源与插件
         run: set -o pipefail; npx cap sync android 2>&1 | tee sync.log
@@ -46,7 +57,7 @@ jobs:
         if: failure()
         run: |
           {
-            for f in android/gradle.log sync.log npm.log; do
+            for f in android/gradle.log sync.log npm.log tts-setup.log; do
               [ -f "$f" ] || continue
               echo "===== $f ====="
               grep -iE "FAILURE|What went wrong|error:|Error:|Exception|Exit code" "$f" | tail -6

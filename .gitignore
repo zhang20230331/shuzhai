@@ -15,3 +15,5 @@ assets/generated/
 
 .mimosa/
 public/shuzhai.apk
+
+scripts/.tts-cache/

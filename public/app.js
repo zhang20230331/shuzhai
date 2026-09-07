@@ -13,6 +13,7 @@ const S = {
   cur: { ch: 0, p: 0 },
   playing: false,
   playToken: 0,
+  mode: null,          // 本次听书使用的音色链路：builtin / online / system
   page: 0,
   pages: 1,
   loading: false,
@@ -37,6 +38,15 @@ const prefs = {
   // 离线模式使用的系统音色名（getVoices 列表里的 name）
   get nativeVoice() { return localStorage.getItem("sz_native_voice") || ""; },
   set nativeVoice(v) { localStorage.setItem("sz_native_voice", v); },
+  // 音色来源：builtin=内置离线语音（随 APK 打包，免费可商用）/ online=电脑 Edge / system=系统TTS；空=自动选
+  get voiceMode() { return localStorage.getItem("sz_voice_mode") || ""; },
+  set voiceMode(v) { localStorage.setItem("sz_voice_mode", v); },
+  // 内置语音音色编号（Kokoro sid：0-2 英文，3-57 中文女声，58-102 中文男声）
+  get builtinVoice() { const v = +localStorage.getItem("sz_builtin_voice"); return Number.isFinite(v) && v >= 0 && v <= 102 ? v : 3; },
+  set builtinVoice(v) { localStorage.setItem("sz_builtin_voice", v); },
+  // 阅读界面亮度（20~100，100=不调暗）
+  get dim() { const v = +localStorage.getItem("sz_dim"); return Number.isFinite(v) && v >= 20 && v <= 100 ? v : 100; },
+  set dim(v) { localStorage.setItem("sz_dim", v); },
 };
 
 /* ---------------- 工具 ---------------- */
@@ -91,6 +101,74 @@ async function checkServer(force = false) {
 }
 
 const nativeTTS = () => window.Capacitor?.Plugins?.TextToSpeech || window.TTS || null;
+/* 内置离线语音桥（Android 原生 SherpaTts，Kokoro 模型随 APK 打包，免费可商用） */
+const androidTts = () => window.AndroidTts || null;
+
+/* ---------------- 内置语音引擎状态与事件 ----------------
+   原生桥接口：init() / isReady() / speak(text,sid,speed) / stop() / setVolumePage(bool)
+   事件统一回调 __szNativeTtsEvent(type, msg)：ready / done / error / focusloss */
+let builtinState = "none"; // none → init → ready | failed
+let builtinErr = "";
+let builtinWaiters = [];
+let builtinSpeakPend = null; // 当前句子 speak 的等待者（done/error 时结算）
+
+function startBuiltinInit() {
+  const bt = androidTts();
+  if (!bt || builtinState === "ready" || builtinState === "init") return;
+  builtinState = "init";
+  try { bt.init(); }
+  catch (e) { builtinState = "failed"; builtinErr = (e && e.message) || String(e); }
+}
+
+/* 等引擎就绪（最多 ms 毫秒）。ready→true；failed/超时→false */
+function waitBuiltinReady(ms = 8000) {
+  if (builtinState === "ready") return Promise.resolve(true);
+  if (builtinState === "failed") return Promise.resolve(false);
+  startBuiltinInit();
+  return new Promise((res) => {
+    const t = setTimeout(() => res(builtinState === "ready"), ms);
+    builtinWaiters.push(() => { clearTimeout(t); res(builtinState === "ready"); });
+  });
+}
+
+/* 结算正在等待的句子朗读（done=播完 / error=出错 / stop=被打断） */
+function settleBuiltin(kind, msg) {
+  const p = builtinSpeakPend; builtinSpeakPend = null;
+  if (!p) return;
+  if (kind === "done") p.res();
+  else p.rej(Object.assign(new Error(msg || "朗读已中断"), { stopped: kind === "stop" }));
+}
+
+/* 用内置语音读一句，返回 Promise（播完才 resolve，出错 reject） */
+function builtinSpeak(text, sid, speed) {
+  return new Promise((res, rej) => {
+    builtinSpeakPend = { res, rej };
+    try { androidTts().speak(text, sid, speed); }
+    catch (e) { builtinSpeakPend = null; rej(e); }
+  });
+}
+
+window.__szNativeTtsEvent = (type, msg) => {
+  if (type === "ready") {
+    builtinState = "ready"; builtinErr = "";
+    const ws = builtinWaiters; builtinWaiters = [];
+    ws.forEach((fn) => fn());
+    if (voiceSheetOpen() && voiceTab === "builtin") renderBuiltinVoices();
+  } else if (type === "error") {
+    if (String(msg || "").indexOf("初始化失败") === 0) {
+      builtinState = "failed"; builtinErr = msg;
+      const ws = builtinWaiters; builtinWaiters = [];
+      ws.forEach((fn) => fn());
+      if (voiceSheetOpen() && voiceTab === "builtin") renderBuiltinVoices();
+    } else settleBuiltin("error", msg);
+  } else if (type === "done") settleBuiltin("done");
+  else if (type === "focusloss") pauseListening(); // 来电话/其他应用抢焦点：自动暂停
+};
+
+/* 三条链路的停止开关（互不影响：切链路前把别的链路停干净） */
+function haltAudioEl() { try { audio.pause(); audio.removeAttribute("src"); audio.load(); } catch {} }
+function haltBuiltin() { try { androidTts()?.stop?.(); } catch {} settleBuiltin("stop"); }
+function haltSystem() { try { nativeTTS()?.stop?.(); } catch {} }
 
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const coverHue = (id) => { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
@@ -221,13 +299,37 @@ function flipToElement(el) {
   if (target !== S.page) goToPage(target);
 }
 
+/* 全书进度（章 + 章内页占比 → 百分比，番茄式右下角常显） */
+function bookProgress() {
+  if (!S.book || !S.chapter) return 0;
+  const total = S.book.chapters.length || 1;
+  const frac = S.pages > 1 ? S.page / S.pages : 0;
+  return Math.max(0, Math.min(1, (S.cur.ch + frac) / total));
+}
+
 function updateIndicator() {
   const slider = $("#pageSlider");
   if (slider) { slider.value = S.page + 1; slider.max = S.pages; }
   const pt = `${S.page + 1}/${S.pages}`;
   $("#pageText").textContent = pt;
-  $("#miniPage").textContent = pt;
+  const bp = Math.round(bookProgress() * 100);
+  $("#miniPage").textContent = bp + "%";
+  if (!bookSliderDrag) $("#bookSlider").value = bp;
+  $("#bookPct").textContent = bp + "%";
 }
+/* 全书进度条拖动：拖动中只刷新百分比，松手跳章（听书中则无缝续播） */
+let bookSliderDrag = false;
+$("#bookSlider").addEventListener("input", (e) => {
+  bookSliderDrag = true;
+  $("#bookPct").textContent = e.target.value + "%";
+});
+$("#bookSlider").addEventListener("change", (e) => {
+  bookSliderDrag = false;
+  if (!S.book) return;
+  const target = Math.min(S.book.chapters.length - 1, Math.round(+e.target.value / 100 * (S.book.chapters.length - 1)));
+  if (S.playing) { S.follow = false; playFrom(target, 0); }
+  else { stopPlay(); gotoChapter(target, {}); }
+});
 /* 无缝跨章翻页：末页继续向后 → 下一章；首页向前 → 上一章末页 */
 async function flipNext() {
   if (S.loading) return;
@@ -476,11 +578,12 @@ function closeToc() { $("#toc").classList.add("hidden"); $("#tocMask").classList
 $("#btnToc").addEventListener("click", () => {
   $("#toc").classList.remove("hidden");
   $("#tocMask").classList.remove("hidden");
+  syncVolumePage(); // 目录打开时音量键还原为调音量
   renderToc();
   const cur = $("#tocList .toc-item.current");
   if (cur) cur.scrollIntoView({ block: "center" });
 });
-$("#tocMask").addEventListener("click", closeToc);
+$("#tocMask").addEventListener("click", () => { closeToc(); syncVolumePage(); });
 /* 章节名搜索：输入即过滤 */
 $("#tocSearch").addEventListener("input", () => {
   renderToc();
@@ -505,6 +608,10 @@ function applyReaderPrefs(relayout = true) {
   track.style.setProperty("--lh", prefs.lh);
   $("#fontLabel").textContent = prefs.font;
   $("#lhLabel").textContent = prefs.lh.toFixed(1);
+  // 亮度：20~100，越低越暗（黑色遮罩，不动系统亮度，省电且不影响其他应用）
+  $("#dimLayer").style.opacity = ((100 - prefs.dim) / 100 * 0.75).toFixed(3);
+  $("#dimRange").value = prefs.dim;
+  $("#dimLabel").textContent = prefs.dim + "%";
   document.body.dataset.theme = prefs.theme === "dark" ? "dark" : "";
   $("#reader").dataset.theme = prefs.theme; // 阅读主题变量挂在 #reader 上：操作栏/悬浮标识/正文全部继承
   viewport.dataset.theme = prefs.theme;
@@ -517,6 +624,11 @@ function applyReaderPrefs(relayout = true) {
     if (el) goToPage(pageOf(el), false);
   }
 }
+$("#dimRange").addEventListener("input", (e) => {
+  prefs.dim = Math.max(20, Math.min(100, +e.target.value));
+  $("#dimLayer").style.opacity = ((100 - prefs.dim) / 100 * 0.75).toFixed(3);
+  $("#dimLabel").textContent = prefs.dim + "%";
+});
 $("#fontPlus").addEventListener("click", () => { prefs.font = Math.min(28, prefs.font + 1); applyReaderPrefs(); });
 $("#fontMinus").addEventListener("click", () => { prefs.font = Math.max(14, prefs.font - 1); applyReaderPrefs(); });
 $("#lhPlus").addEventListener("click", () => { prefs.lh = Math.min(2.4, +(prefs.lh + 0.1).toFixed(1)); applyReaderPrefs(); });
@@ -561,77 +673,188 @@ const voiceLabel = (v) => {
 };
 const CHECK_SVG = '<svg class="v-check" viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
 
+/* ---------------- 音色弹窗：三个来源（内置离线 / 电脑在线 / 系统TTS） ---------------- */
+let voiceTab = "";
+const voiceSheetOpen = () => !$("#voiceSheet").classList.contains("hidden");
+
+function voiceTabs() {
+  const tabs = [];
+  if (androidTts()) tabs.push("builtin");   // 内置 Kokoro（随 APK 打包，离线可用）
+  if (!LOCAL_MODE || serverAlive) tabs.push("online");
+  if (nativeTTS()) tabs.push("system");
+  return tabs;
+}
+
 async function loadVoices() {
   const grid = $("#voiceGrid");
-  const rebuild = !grid.dataset.loaded;
-  if (grid.children.length && !rebuild) return;
-  $("#voiceHint").textContent = "";
+  if (LOCAL_MODE) await checkServer();
+  const tabs = voiceTabs();
+  if (!tabs.length) {
+    renderVoiceError("没有可用音色：在手机上安装本 App 即可使用内置离线音色", false);
+    return;
+  }
+  if (!voiceTab || !tabs.includes(voiceTab)) voiceTab = tabs[0];
+  const bar = $("#voiceTabs");
+  bar.innerHTML = "";
+  bar.style.display = tabs.length > 1 ? "" : "none"; // 单一来源时不显示分组标签
+  tabs.forEach((t) => {
+    const b = document.createElement("button");
+    b.dataset.g = t;
+    b.className = t === voiceTab ? "active" : "";
+    b.textContent = t === "builtin" ? "内置 · 离线" : t === "online" ? "在线" : "系统";
+    b.addEventListener("click", () => { if (voiceTab !== t) { voiceTab = t; loadVoices(); } });
+    bar.appendChild(b);
+  });
+  grid.dataset.loaded = "";
+  renderVoiceTab();
+}
+
+function renderVoiceTab() {
+  if (voiceTab === "builtin") return renderBuiltinVoices();
+  if (voiceTab === "system") return renderSystemVoices();
+  return renderOnlineVoices();
+}
+
+/* 选定某个音色：统一写偏好 + 立即从当前句重播（马上听到新音色） */
+function selectVoice(mode, id, btnEl) {
+  if (mode === "online") prefs.voice = id;
+  else if (mode === "system") prefs.nativeVoice = id;
+  else if (mode === "builtin") prefs.builtinVoice = id;
+  prefs.voiceMode = mode; // 显式选择后不再自动切换来源
+  S.mode = mode;
+  S.audioCache.forEach((u) => URL.revokeObjectURL(u));
+  S.audioCache.clear();
+  if (S.pausedPos && mode === "online") {
+    // 暂停中换在线音色：丢弃旧音色已缓冲的音频，恢复时重新合成
+    S.pausedPos = null;
+    haltAudioEl();
+  }
+  const grid = $("#voiceGrid");
+  grid.querySelectorAll(".voice-item").forEach((x) => {
+    x.classList.toggle("active", x === btnEl);
+    x.querySelector(".v-check")?.remove();
+  });
+  btnEl?.insertAdjacentHTML("beforeend", CHECK_SVG);
+  if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
+}
+
+/* --- 内置音色清单：Kokoro sid 为连续段（0-2 英文，3-57 中文女声，58-102 中文男声） --- */
+const BUILTIN_GROUPS = [
+  { label: "中文女声 · 55 个", from: 3, to: 57, name: (i) => "女声 " + String(i + 1).padStart(2, "0") },
+  { label: "中文男声 · 45 个", from: 58, to: 102, name: (i) => "男声 " + String(i + 1).padStart(2, "0") },
+  { label: "英文口音", list: [["美音女声 · 枫", 0], ["美音女声 · 阳", 1], ["英音女声 · 薇", 2]] },
+];
+
+function renderBuiltinVoices() {
+  const grid = $("#voiceGrid");
+  $("#voiceHint").textContent = "内置音色 · 离线可用 · 免费可商用";
+  if (builtinState === "failed") {
+    renderVoiceError("内置语音初始化失败：" + builtinErr + "。可点重试，或改用在线/系统音色", true);
+    return;
+  }
+  if (builtinState !== "ready") {
+    grid.innerHTML = '<div class="voice-loading">内置语音启动中…（首次需加载语音模型，稍等几秒）</div>';
+    startBuiltinInit();
+    waitBuiltinReady(30000).then((ok) => {
+      if (ok && voiceSheetOpen() && voiceTab === "builtin") renderBuiltinVoices();
+    });
+    return;
+  }
+  grid.innerHTML = "";
+  BUILTIN_GROUPS.forEach((g) => {
+    const h = document.createElement("div");
+    h.className = "voice-group";
+    h.textContent = g.label;
+    grid.appendChild(h);
+    const items = g.list ? g.list : [];
+    const n = g.list ? items.length : g.to - g.from + 1;
+    for (let i = 0; i < n; i++) {
+      const name = g.list ? items[i][0] : g.name(i);
+      const sid = g.list ? items[i][1] : g.from + i;
+      const b = document.createElement("button");
+      const on = sid === prefs.builtinVoice;
+      b.className = "voice-item" + (on ? " active" : "");
+      b.innerHTML = `<span class="v-name">${esc(name)}</span><i class="v-try">试听</i>` + (on ? CHECK_SVG : "");
+      b.addEventListener("click", (e) => {
+        if (e.target.closest(".v-try")) { previewBuiltin(sid); return; }
+        selectVoice("builtin", sid, b);
+      });
+      grid.appendChild(b);
+    }
+  });
+  grid.dataset.loaded = "1";
+}
+
+async function previewBuiltin(sid) {
+  if (S.playing) pauseListening(); // 试听不与朗读混流
+  const ok = await waitBuiltinReady(4000);
+  if (!ok) {
+    toast(builtinState === "failed" ? "内置语音不可用：" + builtinErr : "内置语音还在启动中，请稍候再试", 3000);
+    return;
+  }
+  try {
+    await builtinSpeak("你好，这是音色试听，愿好书常伴你身边。", sid, Math.max(0.5, Math.min(2, prefs.rate / 100)));
+  } catch (e) { if (!e.stopped) toast("试听失败：" + (e.message || e), 3000); }
+}
+
+async function renderOnlineVoices() {
+  const grid = $("#voiceGrid");
+  $("#voiceHint").textContent = "电脑在线音色（微软 Edge 神经语音，需连接听书服务）";
   grid.innerHTML = '<div class="voice-loading">正在获取音色…</div>';
   try {
-    if (LOCAL_MODE) await checkServer();
-    const offline = LOCAL_MODE && !serverAlive;
-    if (offline) {
-      const list = await nativeVoices();
-      if (!list) { renderVoiceError("未检测到语音插件（仅原生 App 内可用）", true); return; }
-      const zh = list.filter((v) => String(v.lang || "").toLowerCase().startsWith("zh"));
-      const pool = zh.length ? zh : list;
-      if (!pool.length) {
-        renderVoiceError("手机系统没有返回可用音色（TTS 引擎未就绪或未安装中文语音），可到系统设置→更多设置→语言与输入→文字转语音(TTS) 检查", true);
-        return;
-      }
-      $("#voiceHint").textContent = `系统音色 · ${pool.length} 个（离线）`;
-      renderNativeVoices(pool);
-      grid.dataset.loaded = "1";
-      return;
-    }
-    $("#voiceHint").textContent = "Edge 在线音色";
     const voices = await api(`${SERVER}/api/voices`);
     grid.innerHTML = "";
+    if (!voices.length) { grid.innerHTML = '<div class="voice-loading">在线音色列表为空</div>'; return; }
     voices.forEach((v) => {
       const b = document.createElement("button");
       b.className = "voice-item" + (v.id === prefs.voice ? " active" : "");
-      b.innerHTML = `<span>${esc(VOICE_SHORT[v.id] || v.name)}</span>` + (v.id === prefs.voice ? CHECK_SVG : "");
       b.dataset.id = v.id;
-      b.addEventListener("click", () => {
-        prefs.voice = v.id;
-        S.audioCache.forEach((u) => URL.revokeObjectURL(u));
-        S.audioCache.clear();
-        grid.querySelectorAll(".voice-item").forEach((x) => {
-          x.classList.toggle("active", x.dataset.id === v.id);
-          x.querySelector(".v-check")?.remove();
-        });
-        b.insertAdjacentHTML("beforeend", CHECK_SVG);
-        // 立即切换：从当前句重播（服务端重新合成当前句）
-        if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
-      });
+      b.innerHTML = `<span class="v-name">${esc(VOICE_SHORT[v.id] || v.name)}</span>` + (v.id === prefs.voice ? CHECK_SVG : "");
+      b.addEventListener("click", () => selectVoice("online", v.id, b));
       grid.appendChild(b);
     });
     grid.dataset.loaded = "1";
-  } catch (e) {
-    renderVoiceError("获取失败：" + (e.message || e), true);
-  }
+  } catch (e) { renderVoiceError("获取失败：" + (e.message || e), true); }
 }
 
-function renderNativeVoices(pool) {
+async function renderSystemVoices() {
   const grid = $("#voiceGrid");
+  const list = await nativeVoices();
+  if (!list) { renderVoiceError("未检测到语音插件（仅原生 App 内可用）", true); return; }
+  const zh = list.filter((v) => String(v.lang || "").toLowerCase().startsWith("zh"));
+  const pool = zh.length ? zh : list;
+  if (!pool.length) {
+    renderVoiceError("手机系统没有返回可用音色（TTS 引擎未就绪或未安装中文语音）。建议直接使用上方「内置 · 离线」音色", true);
+    return;
+  }
+  $("#voiceHint").textContent = `系统音色 · ${pool.length} 个（离线）`;
   grid.innerHTML = "";
   pool.forEach((v) => {
     const b = document.createElement("button");
     b.className = "voice-item" + (v.name === prefs.nativeVoice ? " active" : "");
-    b.innerHTML = `<span>${esc(voiceLabel(v))}</span>` + (v.name === prefs.nativeVoice ? CHECK_SVG : "");
+    b.innerHTML = `<span class="v-name">${esc(voiceLabel(v))}</span><i class="v-try">试听</i>` + (v.name === prefs.nativeVoice ? CHECK_SVG : "");
     b.title = `${v.name} (${v.lang})`;
-      b.addEventListener("click", () => {
-        prefs.nativeVoice = v.name;
-        grid.querySelectorAll(".voice-item").forEach((x) => {
-          x.classList.toggle("active", x === b);
-          x.querySelector(".v-check")?.remove();
-        });
-        b.insertAdjacentHTML("beforeend", CHECK_SVG);
-        // 立即切换：从当前句重播（新音色马上能听到）
-        if (S.playing) playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
-      });
+    const vidx = list.indexOf(v);
+    b.addEventListener("click", (e) => {
+      if (e.target.closest(".v-try")) { previewSystem(v, vidx); return; }
+      selectVoice("system", v.name, b);
+    });
     grid.appendChild(b);
   });
+  grid.dataset.loaded = "1";
+}
+
+async function previewSystem(v, vidx) {
+  if (S.playing) pauseListening();
+  try {
+    await nativeTTS().speak({
+      text: "你好，这是音色试听。",
+      lang: v.lang || "zh-CN",
+      rate: Math.max(0.5, Math.min(2, prefs.rate / 100)),
+      pitch: 1,
+      ...(vidx >= 0 ? { voice: vidx } : {}),
+    });
+  } catch (e) { toast("试听失败：" + (e.message || e), 3000); }
 }
 
 function renderVoiceError(reason, withRetry) {
@@ -643,10 +866,10 @@ function renderVoiceError(reason, withRetry) {
   $("#voiceRetryBtn")?.addEventListener("click", () => {
     nativeVoiceList = null;
     serverCheckedAt = 0;
+    builtinState = "none"; builtinErr = "";
     loadVoices();
   });
 }
-$("#btnVoice").addEventListener("click", openVoiceSheet);
 function closeVoice() { $("#voiceSheet").classList.add("hidden"); $("#voiceMask").classList.add("hidden"); }
 $("#voiceMask").addEventListener("click", closeVoice);
 
@@ -777,7 +1000,20 @@ function updateBall() {
   const show = !!S.book && !sheetOpen && S.menuOpen;
   $("#listenBall").classList.toggle("hidden", !show);
   $("#listenBall").classList.toggle("live", !!S.playing);
+  syncVolumePage();
 }
+
+/* 音量键翻页（番茄式）：纯阅读（未听书、无弹层）时音量键=翻页，其余情况还原为调音量。
+   开关同步给原生侧（MainActivity.dispatchKeyEvent 消费按键） */
+function syncVolumePage() {
+  const quiet = !!S.book && !S.playing && !S.pausedPos && !S.menuOpen
+    && $("#toc").classList.contains("hidden");
+  try { androidTts()?.setVolumePage?.(quiet); } catch {}
+}
+window.__szVolumeKey = (dir) => {
+  if (!S.book || S.playing) return;
+  if (dir > 0) flipNext(); else flipPrev();
+};
 function togglePlayerSheet(force) {
   const sheet = $("#playerSheet");
   const open = force !== undefined ? force : sheet.classList.contains("hidden");
@@ -810,17 +1046,56 @@ async function getAudio(ch, p) {
   return url;
 }
 
+/* ---------------- 音色链路选择 ----------------
+   显式选择优先；不可用时按 内置离线 → 电脑在线 → 系统TTS 自动降级 */
+async function resolveVoiceMode() {
+  let m = prefs.voiceMode;
+  if (m === "builtin" && !androidTts()) m = "";
+  if (m === "system" && !nativeTTS()) m = "";
+  if (m === "online" && LOCAL_MODE) {
+    await checkServer();
+    if (!serverAlive) m = "";
+  }
+  if (m) return m;
+  // 自动：优先内置离线语音（随 App 打包，任何手机可用，不依赖网络）
+  if (androidTts()) {
+    if (builtinState === "ready") return "builtin";
+    if (builtinState === "none") startBuiltinInit();
+    if (builtinState !== "failed") {
+      toast("内置语音启动中…");
+      if (await waitBuiltinReady(8000)) return "builtin";
+    }
+  }
+  if (!LOCAL_MODE) return "online";
+  await checkServer();
+  if (serverAlive) return "online";
+  if (nativeTTS()) return "system";
+  return "online"; // 无可用离线链路时仍走在线，让播放链给出明确报错
+}
+
 async function playFrom(ch, p, s = 0) {
   if (!S.book) return;
   const token = ++S.playToken;
-  if (LOCAL_MODE) await checkServer();
+  const mode = await resolveVoiceMode();
+  if (token !== S.playToken) return;
+  S.mode = mode;
   if (ch !== S.cur.ch) await loadChapter(ch, p);
   S.cur = { ch, p, s };
   S.pausedPos = null;
   S.follow = true; // 新一次播放默认跟随高亮翻页
   saveProgressNow();
   setPlayingUI(true);
-  if (LOCAL_MODE && !serverAlive && nativeTTS()) return nativeChain(ch, p, s, token);
+  if (mode === "builtin" || mode === "system") {
+    haltAudioEl(); // 切到离线链路：停掉可能在播的在线音频流
+    const speakSeg = mode === "builtin"
+      ? (text) => builtinSpeak(text, +prefs.builtinVoice, Math.max(0.5, Math.min(2, prefs.rate / 100)))
+      : speakSystemSeg;
+    const failTip = mode === "builtin"
+      ? "内置语音连续朗读失败。可重进应用重试，或在「音色」里改用在线/系统音色。"
+      : "手机语音引擎连续朗读失败。可能未安装中文语音数据：请到 系统设置 → 更多设置 → 语言与输入 → 文字转语音(TTS) 检查；或改用「内置 · 离线」音色。";
+    return sentenceChain(ch, p, s, token, speakSeg, failTip);
+  }
+  haltBuiltin(); haltSystem(); // 切到在线链路：停掉离线朗读
   try {
     const url = await getAudio(ch, p);
     if (token !== S.playToken) return;
@@ -844,8 +1119,16 @@ async function playFrom(ch, p, s = 0) {
     }
     S.synthFails = (S.synthFails || 0) + 1;
     if (S.synthFails >= 3) {
+      // 在线合成连续失败：自动降级到可用的离线语音继续读（每轮播放只降级一次，防循环）
+      if (!S.onlineFallbackDone && (androidTts() || nativeTTS())) {
+        S.onlineFallbackDone = true;
+        serverCheckedAt = 0; // 强制重探服务器，让自动选择避开在线
+        if (prefs.voiceMode === "online") prefs.voiceMode = "";
+        toast("在线语音不可用，已自动切换离线语音");
+        return playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
+      }
       stopPlay();
-      showBookError("电脑语音合成连续失败。请确认：家里电脑已开机并运行听书服务、手机与电脑连同一网络；或暂时离开电脑网络时改用系统音色（离线）收听。");
+      showBookError("电脑语音合成连续失败。请确认：家里电脑已开机并运行听书服务、手机与电脑连同一网络；或在「音色」里改用内置离线音色（无需网络）。");
       return;
     }
     toast("合成失败，2 秒后跳到下一段");
@@ -853,9 +1136,29 @@ async function playFrom(ch, p, s = 0) {
   }
 }
 
-/* 离线链路：系统 TTS 按句朗读（句子短，暂停/关闭立即生效）。
-   朗读连续失败自动降级（弃用所选音色），仍失败则停止并给出原因——绝不无限跳句 */
-async function nativeChain(ch, p, s, token) {
+/* 系统 TTS 读一句（所选音色失败时弃用音色重试一句） */
+async function speakSystemSeg(text) {
+  const opts = { text, lang: "zh-CN", rate: Math.max(0.5, Math.min(2, prefs.rate / 100)), pitch: 1 };
+  const list = await nativeVoices();
+  let vidx = -1;
+  if (list && prefs.nativeVoice) {
+    vidx = list.findIndex((v) => v.name === prefs.nativeVoice);
+    if (vidx >= 0) opts.voice = vidx;
+  }
+  try {
+    await nativeTTS().speak(opts);
+  } catch (e) {
+    if (vidx < 0) throw e;
+    // 所选音色导致朗读失败：清除选择，用系统默认音色重试这句
+    prefs.nativeVoice = "";
+    delete opts.voice;
+    await nativeTTS().speak(opts);
+  }
+}
+
+/* 离线链路（内置语音/系统TTS 共用）：按句朗读，句子短，暂停/关闭立即生效。
+   连续失败 3 次停止并给出原因——绝不无限跳句 */
+async function sentenceChain(ch, p, s, token, speakSeg, failTip) {
   let fails = 0, lastErr = "";
   while (token === S.playToken && S.book) {
     if (ch !== S.cur.ch || !S.chapter) {
@@ -872,24 +1175,10 @@ async function nativeChain(ch, p, s, token) {
     highlightSeg(p, s);
     let spoke = false;
     try {
-      const opts = { text, lang: "zh-CN", rate: Math.max(0.5, Math.min(2, prefs.rate / 100)), pitch: 1 };
-      const list = await nativeVoices();
-      let vidx = -1;
-      if (list && prefs.nativeVoice) {
-        vidx = list.findIndex((v) => v.name === prefs.nativeVoice);
-        if (vidx >= 0) opts.voice = vidx;
-      }
-      try {
-        await nativeTTS().speak(opts);
-      } catch (e) {
-        if (vidx < 0) throw e;
-        // 所选音色导致朗读失败：清除选择，用系统默认音色重试这句
-        prefs.nativeVoice = "";
-        delete opts.voice;
-        await nativeTTS().speak(opts);
-      }
+      await speakSeg(text);
       spoke = true;
     } catch (e) {
+      if (e && e.stopped) return; // 被 stop()/pause() 打断：安静退出
       lastErr = (e && e.message) || String(e);
     }
     if (token !== S.playToken) return;
@@ -897,8 +1186,7 @@ async function nativeChain(ch, p, s, token) {
       fails++;
       if (fails >= 3) {
         stopPlay();
-        showBookError("手机语音引擎连续朗读失败" + (lastErr ? "（" + lastErr + "）" : "") +
-          "。可能未安装中文语音数据：请到 系统设置 → 更多设置 → 语言与输入 → 文字转语音(TTS) 检查引擎与中文语音包；或在同一网络下打开电脑使用在线语音。");
+        showBookError(failTip + (lastErr ? "（" + lastErr + "）" : ""));
         return;
       }
       await new Promise((r) => setTimeout(r, 300));
@@ -942,29 +1230,28 @@ function prevPara() {
   else playFrom(S.cur.ch, 0);
 }
 
-/* 暂停：离线立即停当前句并记住位置；在线暂停音频流 */
+/* 暂停：离线链路立即停当前句并记住位置；在线链路暂停音频流 */
 function pauseListening() {
-  if (LOCAL_MODE && !serverAlive && nativeTTS()) {
-    S.pausedPos = { ...S.cur };
-    S.playToken++;
-    try { nativeTTS().stop(); } catch {}
-    setPlayingUI(false);
-  } else {
-    S.playToken++;
-    audio.pause();
-    setPlayingUI(false);
-  }
+  S.pausedPos = { ...S.cur };
+  S.playToken++;
+  if (S.mode === "builtin") haltBuiltin();
+  else if (S.mode === "system") haltSystem();
+  else { try { audio.pause(); } catch {} }
+  setPlayingUI(false);
 }
 function resumeListening() {
   const token = ++S.playToken;
-  if (LOCAL_MODE && !serverAlive && nativeTTS()) {
-    if (S.pausedPos) {
-      const { ch, p, s } = S.pausedPos;
-      S.pausedPos = null;
-      setPlayingUI(true);
-      return nativeChain(ch, p, s || 0, token);
-    }
-    return playFrom(S.cur.ch, S.cur.p || 0, S.cur.s || 0);
+  if (S.mode === "builtin" || S.mode === "system") {
+    const pos = S.pausedPos || S.cur;
+    S.pausedPos = null;
+    setPlayingUI(true);
+    const speakSeg = S.mode === "builtin"
+      ? (text) => builtinSpeak(text, +prefs.builtinVoice, Math.max(0.5, Math.min(2, prefs.rate / 100)))
+      : speakSystemSeg;
+    const failTip = S.mode === "builtin"
+      ? "内置语音连续朗读失败。可重进应用重试，或在「音色」里改用在线/系统音色。"
+      : "手机语音引擎连续朗读失败。可能未安装中文语音数据：请到 系统设置 → 更多设置 → 语言与输入 → 文字转语音(TTS) 检查；或改用「内置 · 离线」音色。";
+    return sentenceChain(pos.ch, pos.p, pos.s || 0, token, speakSeg, failTip);
   }
   if (audio.src && audio.paused) { setPlayingUI(true); audio.play().catch(() => {}); return; }
   playFrom(S.cur.ch, S.cur.p || 0);
@@ -973,16 +1260,18 @@ function resumeListening() {
 function stopPlay() {
   S.playToken++; // 作废所有 pending 的播放链（含 AbortError 重试）
   setPlayingUI(false);
-  audio.pause();
-  audio.removeAttribute("src");
-  try { audio.load(); } catch {}
-  try { nativeTTS()?.stop?.(); } catch {} // 关键：停掉系统语音引擎，否则手机上声音关不掉
+  haltAudioEl();
+  haltBuiltin();   // 关键：停掉内置语音引擎，否则手机上声音关不掉
+  haltSystem();    // 关键：停掉系统语音引擎，否则手机上声音关不掉
   track.querySelectorAll(".seg.on").forEach((el) => el.classList.remove("on")); // 关闭听书后取消正文高亮
   clearInterval(timerTick); timerTick = null;
   S.timerEnd = 0; S.timerChapters = 0; S.chaptersDone = 0; S.pausedPos = null; // 手动停止同时取消定时
+  S.onlineFallbackDone = false; // 下一轮播放允许再次自动降级
+  S.mode = null;
   document.querySelectorAll("#timerChips button").forEach((x) => x.classList.toggle("active", x.dataset.min === "0"));
   document.querySelectorAll("#chapterChips button").forEach((x) => x.classList.toggle("active", x.dataset.ch === "0"));
   $("#playerSub").textContent = "听书中";
+  syncVolumePage(); // pausedPos 已清空：纯阅读状态音量键恢复为翻页
 }
 
 $("#btnPlayToggle").addEventListener("click", () => {
@@ -1144,6 +1433,7 @@ applyReaderPrefs(false);
 $("#rateRange").value = prefs.rate;
 $("#rateLabel").textContent = (prefs.rate / 100).toFixed(1) + "x";
 if (LOCAL_MODE) checkServer();      // 后台预探测家里电脑，不阻塞首次听书
+if (androidTts()) startBuiltinInit(); // 预热内置离线语音引擎，首次点听书几乎秒开
 if (nativeTTS()?.getVoices) nativeVoices(); // 预热系统 TTS 引擎，首次开播更快
 loadShelf();
 
@@ -1166,6 +1456,8 @@ async function showDiagnostics() {
     "顶栏背景: " + (cs ? cs.backgroundColor : "元素缺失"),
     "顶栏层叠: z=" + (cs ? cs.zIndex : "?"),
     "本地模式: " + LOCAL_MODE + " · 在线: " + serverAlive,
+    "内置语音: " + (androidTts() ? builtinState + (builtinState === "failed" ? "（" + builtinErr + "）" : "") + " · 音色sid: " + prefs.builtinVoice : "桥不存在（非本APK或老版本）"),
+    "音色来源: " + (prefs.voiceMode || "自动") + " · 当前链路: " + (S.mode || "-"),
     "TTS插件: " + (nativeTTS() ? "有" : "无") +
       (nativeTTS() ? " · 方法: " + (nativeTTS().getSupportedVoices ? "getSupportedVoices" : (nativeTTS().getVoices ? "getVoices" : "无音色方法")) : ""),
     "系统音色数: " + (nv ? nv.length : "未获取"),

@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.Window;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
@@ -86,5 +87,23 @@ public class MainActivity extends BridgeActivity {
                 stopService(new Intent(MainActivity.this, PlaybackService.class));
             }
         }, "AndroidMedia");
+
+        // 网页通过此桥使用内置离线语音（Kokoro 模型随 APK 打包，离线可用）
+        bridge.getWebView().addJavascriptInterface(new SherpaTts(this), "AndroidTts");
+    }
+
+    /** 音量键翻页（阅读中=翻页，听书中/书架=正常音量），开关由网页经 AndroidTts.setVolumePage 控制 */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0
+                && SherpaTts.volumePage) {
+            int kc = event.getKeyCode();
+            if (kc == KeyEvent.KEYCODE_VOLUME_UP || kc == KeyEvent.KEYCODE_VOLUME_DOWN) {
+                evalJs("window.__szVolumeKey && window.__szVolumeKey("
+                        + (kc == KeyEvent.KEYCODE_VOLUME_UP ? 1 : -1) + ")");
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(event);
     }
 }

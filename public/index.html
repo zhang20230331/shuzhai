@@ -38,6 +38,8 @@
   <main id="viewport">
     <div id="track"></div>
   </main>
+  <!-- 亮度遮罩：黑色半透明盖在正文上，不拦截点击 -->
+  <div id="dimLayer"></div>
 
   <!-- 常显小标识（呼出菜单时自动隐藏） -->
   <div id="readerMini" class="mini-top"><span id="miniChapter"></span></div>
@@ -59,6 +61,12 @@
       <input type="range" id="pageSlider" min="1" max="1" value="1" step="1">
       <span class="page-text" id="pageText">1/1</span>
       <button id="btnNextChapter" class="menu-btn">下一章</button>
+    </div>
+    <!-- 全书进度条（番茄式）：拖动跳章，右下角常显百分比 -->
+    <div class="menu-row menu-book-progress">
+      <span class="bp-label">全书</span>
+      <input type="range" id="bookSlider" min="0" max="100" value="0" step="1">
+      <span class="page-text" id="bookPct">0%</span>
     </div>
     <div class="menu-row menu-actions">
       <button id="btnToc" class="menu-btn">
@@ -117,6 +125,7 @@
   <div id="voiceMask" class="mask hidden"></div>
   <div id="voiceSheet" class="sheet hidden">
     <div class="sheet-head">朗读音色 <span id="voiceHint" style="font-size:11px;font-weight:400;color:var(--muted)"></span></div>
+    <div id="voiceTabs" class="voice-tabs"></div>
     <div id="voiceGrid" class="voice-list"></div>
   </div>
 
@@ -187,6 +196,12 @@
         <button class="theme-dot" data-theme="dark" style="--bg:#121212;--fg:#a8a8a8"></button>
       </div>
     </div>
+    <div class="sheet-row dim-row"><span>亮度</span>
+      <div class="dim-ctrl">
+        <input type="range" id="dimRange" min="20" max="100" step="5" value="100">
+        <span id="dimLabel">100%</span>
+      </div>
+    </div>
   </div>
 
   <div id="flipLoading" class="hidden"><div class="spin"></div></div>
@@ -210,7 +225,7 @@
     </div>
   </div>
 <audio id="audio" preload="auto"></audio>
-<script src="local.js?v=24"></script>
-<script src="app.js?v=24"></script>
+<script src="local.js?v=25"></script>
+<script src="app.js?v=25"></script>
 </body>
 </html>
