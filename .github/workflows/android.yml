@@ -156,29 +156,20 @@ jobs:
             set -x
             mkdir -p shots
             adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            # 预授权通知权限，避免启动弹窗遮挡
+            adb shell pm grant com.shuzhai.reader android.permission.POST_NOTIFICATIONS 2>/dev/null || true
             adb shell am start -n com.shuzhai.reader/.MainActivity
-            sleep 10
+            sleep 14
             adb exec-out screencap -p > shots/01-launch.png
-            # 打开名著书城（Pixel6 1080x2400 已校准坐标）
-            adb shell input tap 430 205
-            sleep 2
-            adb exec-out screencap -p > shots/02-store.png
-            # 导入第一本书（西游记）→ 自动进阅读器
-            adb shell input tap 293 2041
-            sleep 12
-            adb exec-out screencap -p > shots/03-reader.png
-            # 呼出菜单
-            adb shell input tap 540 1200
-            sleep 1.5
-            adb exec-out screencap -p > shots/04-menu.png
-            # 点听书（内置离线语音）
-            adb shell input tap 412 2248
-            sleep 40
-            adb exec-out screencap -p > shots/05-listening.png
-            # 二次安装验证覆盖安装（同签名新包直接覆盖）
+            # CDP 驱动 WebView 走完 书城导入→阅读→听书（不依赖屏幕坐标）
+            PID=$(adb shell pidof com.shuzhai.reader | tr -d '\r')
+            adb forward tcp:9222 localabstract:webview_devtools_remote_$PID
+            pip install --quiet websocket-client
+            python3 .github/scripts/cdp_smoke.py shots
+            # 二次安装验证覆盖安装（同签名新包直接覆盖，无需卸载）
             adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-            adb shell dumpsys package com.shuzhai.reader | grep versionName
-            adb logcat -d | grep -aE "FATAL|SIGABRT" | head -5 || true
+            adb shell dumpsys package com.shuzhai.reader | grep -E "versionCode|versionName"
+            adb logcat -d | grep -aE "FATAL EXCEPTION|SIGABRT" | head -5 || true
 
       - name: 上传实测截图
         uses: actions/upload-artifact@v4
