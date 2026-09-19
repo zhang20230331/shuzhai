@@ -21,6 +21,11 @@ jobs:
         with:
           node-version: 22
 
+      # runner 自带 python3 无 pip（Ubuntu 24.04 externally-managed），用 setup-python 提供可 pip 的环境
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       # 内置离线语音模型/AAR 下载缓存（约 190MB），按脚本内容变化失效
       - name: 缓存 TTS 资源
         uses: actions/cache@v4
@@ -85,6 +90,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      # runner 自带 python3 无 pip（Ubuntu 24.04 externally-managed），用 setup-python 提供可 pip 的环境
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: 缓存 TTS 资源
         uses: actions/cache@v4

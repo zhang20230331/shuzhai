@@ -154,17 +154,22 @@ def ensure_onnx() -> None:
     try:
         import onnx  # noqa: F401
     except ImportError:
-        # CI 的 Ubuntu 24.04 python 为 externally-managed，依次尝试多种安装方式
+        # CI 的 runner python3 可能没有 pip（Ubuntu 24.04 externally-managed），
+        # 依次尝试多种安装方式，全部失败给出明确指引
         print("[依赖] 安装 onnx（模型元数据改写需要）")
-        base = [sys.executable, "-m", "pip", "install", "--quiet", "onnx"]
-        for extra in ([], ["--break-system-packages"], ["--user"]):
+        attempts = [
+            [sys.executable, "-m", "pip", "install", "--quiet", "onnx"],
+            [sys.executable, "-m", "pip", "install", "--quiet", "--break-system-packages", "onnx"],
+            ["pip3", "install", "--quiet", "onnx"],
+        ]
+        for cmd in attempts:
             try:
-                subprocess.run(base + extra, check=True)
+                subprocess.run(cmd, check=True)
                 import onnx  # noqa: F401
                 return
-            except (subprocess.CalledProcessError, ImportError):
+            except (subprocess.CalledProcessError, FileNotFoundError, ImportError):
                 continue
-        raise SystemExit("无法自动安装 onnx，请先手动执行: pip install onnx")
+        raise SystemExit("无法自动安装 onnx：请用 actions/setup-python 或手动 pip install onnx")
 
 
 def subset_assets() -> None:
