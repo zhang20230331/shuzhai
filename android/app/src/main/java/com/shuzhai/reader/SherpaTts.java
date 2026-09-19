@@ -73,9 +73,13 @@ public final class SherpaTts {
     private PowerManager.WakeLock wakeLock;
     private File ttsCache;
 
-    /** 预合成请求队列（容量 4，满则丢弃；仅预合成引擎消费） */
+    /** 本机合成速度滚动统计（isSlowSynth 依据） */
+    private float rtfAvg = 0f;
+    private int rtfCount = 0;
+
+    /** 预合成请求队列（容量 8，满则丢弃；仅预合成引擎消费） */
     private final java.util.concurrent.BlockingQueue<PendingPrefetch> prefetchQueue =
-            new java.util.concurrent.LinkedBlockingQueue<>(4);
+            new java.util.concurrent.LinkedBlockingQueue<>(8);
 
     private static final class PendingPrefetch {
         final String text;
@@ -90,8 +94,50 @@ public final class SherpaTts {
         volatile boolean stopped;
         long frames;
 
-        /** 流式合成：边合边播（未命中缓存时）。tts 引擎仅 worker 线程使用，无需加锁 */
+        /** RTF 滚动统计（合成耗时 / 音频时长），供网页侧判断本机合成是否偏慢 */
+        private void trackRtf(long elapsedMs, float audioSec) {
+            if (audioSec <= 0.1f) return;
+            float rtf = elapsedMs / 1000f / audioSec;
+            rtfAvg = rtfCount == 0 ? rtf : (rtfAvg * 0.6f + rtf * 0.4f);
+            if (rtfCount < 99) rtfCount++;
+            android.util.Log.d(TAG, "rtf=" + String.format("%.2f", rtf)
+                    + " avg=" + String.format("%.2f", rtfAvg));
+        }
+
+        /** 整句合成完再播（双引擎设备的缓存未命中路径）：绝不边合边播出杂音 */
+        void synthThenPlay(String text, int sid, float speed) throws Exception {
+            fire("synth", null); // 网页侧显示「本机合成中…」
+            long t0 = SystemClock.elapsedRealtime();
+            GeneratedAudio a = tts.generate(text, sid, speed);
+            float[] samples = a.getSamples();
+            float audioSec = samples.length / (float) sampleRate;
+            trackRtf(SystemClock.elapsedRealtime() - t0, audioSec);
+            if (stopped) return;
+            frames = 0;
+            track.play();
+            int off = 0;
+            long stallStart = 0;
+            while (off < samples.length) {
+                if (stopped) return;
+                int n = track.write(samples, off, samples.length - off, AudioTrack.WRITE_NON_BLOCKING);
+                if (n < 0) return;
+                if (n == 0) {
+                    if (stallStart == 0) stallStart = SystemClock.elapsedRealtime();
+                    else if (SystemClock.elapsedRealtime() - stallStart > 15000) return;
+                    try { Thread.sleep(20); } catch (InterruptedException e) { return; }
+                } else {
+                    stallStart = 0;
+                    off += n;
+                    frames += n;
+                }
+            }
+            drain();
+        }
+
+        /** 流式合成：边合边播（单引擎低内存设备的兜底路径）。tts 引擎仅 worker 线程使用，无需加锁 */
         void run(String text, int sid, float speed) throws Exception {
+            fire("synth", null);
+            long t0 = SystemClock.elapsedRealtime();
             frames = 0;
             track.play();
             GenerationConfig g = new GenerationConfig();
@@ -127,6 +173,7 @@ public final class SherpaTts {
                             return stopped ? 0 : 1;
                         }
                     });
+            trackRtf(SystemClock.elapsedRealtime() - t0, frames / (float) sampleRate);
             drain();
         }
 
@@ -159,14 +206,20 @@ public final class SherpaTts {
             drain();
         }
 
-        /** 等缓冲排空：上限 = 时长×1.5 + 3s，音频系统异常时绝不无限等待 */
+        /** 等缓冲排空：上限 = 时长×1.5 + 3s；播放头 1.5s 无进展立即放弃（音频 HAL 异常时不白等） */
         private void drain() {
             long maxWaitMs = (long) (frames / (float) sampleRate * 1500) + 3000;
             long start = SystemClock.elapsedRealtime();
-            long head = 0;
+            long head = 0, lastProgress = 0, lastHead = -1;
             while (!stopped && (head = (long) track.getPlaybackHeadPosition()) < frames) {
-                if (SystemClock.elapsedRealtime() - start > maxWaitMs) {
+                long now = SystemClock.elapsedRealtime();
+                if (now - start > maxWaitMs) {
                     android.util.Log.w(TAG, "drain timeout, head=" + head + " frames=" + frames);
+                    break;
+                }
+                if (head != lastHead) { lastHead = head; lastProgress = now; }
+                else if (now - lastProgress > 1500 && lastHead >= 0) {
+                    android.util.Log.w(TAG, "drain stalled (head frozen), give up: head=" + head);
                     break;
                 }
                 try { Thread.sleep(25); } catch (InterruptedException e) { return; }
@@ -279,8 +332,13 @@ public final class SherpaTts {
                 File cached = cacheFile(text, sid, speed);
                 if (cached.isFile()) {
                     job.playCached(cached);
+                } else if (prefetchTts != null) {
+                    // 双引擎：整句合成完再播（绝不边合边播出杂音）。
+                    // 稳态下句子已被预合成引擎备好走缓存，此路径只在冷启动/跳句时出现
+                    job.synthThenPlay(text, sid, speed);
                 } else {
-                    job.run(text, sid, speed); // 流式：出首音很快，不等整句合成
+                    // 单引擎（低内存设备）：只能流式；RTF 过慢时由网页侧自动降级系统 TTS
+                    job.run(text, sid, speed);
                 }
                 if (!job.stopped) fire("done", null);
             } catch (Throwable t) {
@@ -289,11 +347,35 @@ public final class SherpaTts {
         });
     }
 
-    /** 预合成下一句：在当前句播放的间隙后台执行，写入磁盘缓存（只保留最新一条请求） */
+    /** 预合成：独立引擎后台整句合成入缓存，与播放完全并行（无独立引擎时为 no-op） */
     @android.webkit.JavascriptInterface
     public void prefetch(final String text, final int sid, final float speed) {
         if (!ready || prefetchTts == null || text == null || text.isEmpty()) return;
         prefetchQueue.offer(new PendingPrefetch(text, sid, speed)); // 队列满=预合成跟不上，丢弃
+    }
+
+    /** 本机合成是否偏慢（最近整句合成的 RTF 滚动均值 > 1.25，至少测 3 句） */
+    @android.webkit.JavascriptInterface
+    public boolean isSlowSynth() {
+        return rtfCount >= 3 && rtfAvg > 1.25f;
+    }
+
+    /** 供低内存设备/测试手动启用预合成引擎（正常情况按内存自动决定）。
+        必须用独立线程：prefetchWorker 已被 prefetchLoop 常驻占用 */
+    @android.webkit.JavascriptInterface
+    public void enablePrefetchEngine() {
+        if (!ready || prefetchTts != null) return;
+        new Thread(() -> {
+            try {
+                File espeakDir = new File(context.getFilesDir(), "tts/espeak-ng-data");
+                OfflineTts engine = new OfflineTts(assets, buildConfig(espeakDir));
+                prefetchTts = engine;
+                android.util.Log.i(TAG, "prefetch engine ready (manual)");
+            } catch (Throwable t) {
+                prefetchTts = null;
+                android.util.Log.w(TAG, "prefetch engine init failed: " + safeMsg(t));
+            }
+        }, "prefetch-engine-init").start();
     }
 
     @android.webkit.JavascriptInterface

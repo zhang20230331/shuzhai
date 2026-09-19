@@ -184,6 +184,10 @@ window.__szNativeTtsEvent = (type, msg) => {
     const ws = builtinWaiters; builtinWaiters = [];
     ws.forEach((fn) => fn());
     if (voiceSheetOpen() && voiceTab === "builtin") renderBuiltinVoices();
+  } else if (type === "synth") {
+    // 整句合成中（缓存未命中的整句合成路径）：给用户状态反馈
+    const sub = $("#playerSub");
+    if (sub && !sub.textContent.includes("合成中")) sub.textContent = "本机合成中…";
   } else if (type === "error") {
     if (String(msg || "").indexOf("初始化失败") === 0) {
       builtinState = "failed"; builtinErr = msg;
@@ -1074,7 +1078,7 @@ function renderVoiceTab() {
 function selectVoice(mode, id, btnEl) {
   if (mode === "online") prefs.voice = id;
   else if (mode === "system") prefs.nativeVoice = id;
-  else if (mode === "builtin") prefs.builtinVoice = id;
+  else if (mode === "builtin") { prefs.builtinVoice = id; S.slowBuiltin = false; } // 用户明确选回内置：清除自动降级
   else if (mode === "volcano") prefs.volcanoVoice = id;
   prefs.voiceMode = mode; // 显式选择后不再自动切换来源
   S.mode = mode;
@@ -1498,6 +1502,7 @@ const volcanoConfigured = () => !!(prefs.volcanoAppId && prefs.volcanoToken);
 async function resolveVoiceMode() {
   let m = prefs.voiceMode;
   if (m === "builtin" && !androidTts()) m = "";
+  if (m === "builtin" && S.slowBuiltin) m = ""; // 本机合成过慢：自动模式下避开内置
   if (m === "system" && !nativeTTS()) m = "";
   if (m === "volcano" && !volcanoConfigured()) m = "";
   if (m === "online" && LOCAL_MODE) {
@@ -1505,8 +1510,9 @@ async function resolveVoiceMode() {
     if (!serverAlive) m = "";
   }
   if (m) return m;
-  // 自动：优先内置离线语音（随 App 打包，任何手机可用，不依赖网络）
-  if (androidTts()) {
+  // 自动：优先内置离线语音（随 App 打包，任何手机可用，不依赖网络）；
+  // 本机合成过慢（RTF>1.25）时跳过内置，避免断续卡顿
+  if (androidTts() && !S.slowBuiltin) {
     if (builtinState === "ready") return "builtin";
     if (builtinState === "none") startBuiltinInit();
     if (builtinState !== "failed") {
@@ -1643,15 +1649,15 @@ async function sentenceChain(ch, p, s, token, speakSeg, failTip) {
     if (!text) { s++; continue; }
     S.cur = { ch, p, s };
     highlightSeg(p, s);
-    // 内置语音：把后面 2 句丢给独立预合成引擎（与播放完全并行，句间零等待）
+    // 内置语音：把后面 4 句丢给独立预合成引擎（与播放完全并行，句间零等待）
     if (S.mode === "builtin" && S.flat) {
       const idx = flatIndexOf(p, s);
       const speed = Math.max(0.5, Math.min(2, prefs.rate / 100));
-      for (const f of S.flat.slice(idx + 1, idx + 3)) {
+      for (const f of S.flat.slice(idx + 1, idx + 5)) {
         try { androidTts().prefetch(f.text, +prefs.builtinVoice, speed); } catch {}
       }
       // 本章末尾：预取下一章首句
-      if (idx + 2 >= S.flat.length) {
+      if (idx + 4 >= S.flat.length) {
         const nx = nextSentenceText(ch, p, s);
         if (nx) try { androidTts().prefetch(nx, +prefs.builtinVoice, speed); } catch {}
       }
@@ -1660,9 +1666,17 @@ async function sentenceChain(ch, p, s, token, speakSeg, failTip) {
     try {
       await speakSeg(text);
       spoke = true;
+      $("#playerSub").textContent = timerStatusText(); // 恢复「合成中」占位
     } catch (e) {
       if (e && e.stopped) return; // 被 stop()/pause() 打断：安静退出
       lastErr = (e && e.message) || String(e);
+    }
+    // 本机合成持续偏慢（自动模式下）：切系统语音保证流畅；用户可随时在音色面板选回内置
+    if (S.mode === "builtin" && !S.slowBuiltin && !prefs.voiceMode
+        && androidTts()?.isSlowSynth?.()) {
+      S.slowBuiltin = true;
+      toast("本机合成速度偏慢，已自动切换系统语音（更流畅）；高音质可在音色面板接入豆包", 4200);
+      return playFrom(S.cur.ch, S.cur.p, S.cur.s);
     }
     if (token !== S.playToken) return;
     if (!spoke) {
