@@ -1,9 +1,9 @@
 apply plugin: 'com.android.application'
 
 // 版本号随 CI 运行次数自增：保证每次云构建都能覆盖安装旧版。
-// 本地构建兜底 2000（始终大于历史版本），CI 用 run number 继续往上走。
+// 本地构建兜底 2000；CI 用 3000+runNumber（高于一切本地构建），继续往上走。
 def ciRun = (System.getenv("GITHUB_RUN_NUMBER") ?: "0").toInteger()
-def versionCodeAuto = ciRun > 0 ? 1000 + ciRun : 2000
+def versionCodeAuto = ciRun > 0 ? 3000 + ciRun : 2000
 
 android {
     namespace = "com.shuzhai.reader"
