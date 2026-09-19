@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=27">
+<link rel="stylesheet" href="style.css?v=28">
 </head>
 <body>
 
@@ -72,15 +72,8 @@
   <footer id="readerMenu" class="reader-menu">
     <div class="menu-row menu-chapter">
       <button id="btnPrevChapter" class="menu-btn">上一章</button>
-      <input type="range" id="pageSlider" min="1" max="1" value="1" step="1">
       <span class="page-text" id="pageText">1/1</span>
       <button id="btnNextChapter" class="menu-btn">下一章</button>
-    </div>
-    <!-- 全书进度条（番茄式）：拖动跳章，右下角常显百分比 -->
-    <div class="menu-row menu-book-progress">
-      <span class="bp-label">全书</span>
-      <input type="range" id="bookSlider" min="0" max="100" value="0" step="1">
-      <span class="page-text" id="bookPct">0%</span>
     </div>
     <div class="menu-row menu-actions">
       <button id="btnToc" class="menu-btn">
@@ -295,6 +288,6 @@
   </div>
 <audio id="audio" preload="auto"></audio>
 <script src="local.js?v=27"></script>
-<script src="app.js?v=27"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>

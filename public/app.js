@@ -429,19 +429,11 @@ function bookProgress() {
 }
 
 function updateIndicator() {
-  const slider = $("#pageSlider");
-  if (isScroll()) {
-    const pct = Math.round(inChapterFrac() * 100);
-    if (slider) { slider.max = 100; slider.value = pct; }
-    $("#pageText").textContent = pct + "%";
-  } else {
-    if (slider) { slider.value = S.page + 1; slider.max = S.pages; }
-    $("#pageText").textContent = `${S.page + 1}/${S.pages}`;
-  }
-  const bp = Math.round(bookProgress() * 100);
-  $("#miniPage").textContent = bp + "%";
-  if (!bookSliderDrag) $("#bookSlider").value = bp;
-  $("#bookPct").textContent = bp + "%";
+  // 底部菜单只保留上一章/下一章 + 纯文字页码（全书进度在右下角常显小标识）
+  $("#pageText").textContent = isScroll()
+    ? Math.round(inChapterFrac() * 100) + "%"
+    : `${S.page + 1}/${S.pages}`;
+  $("#miniPage").textContent = Math.round(bookProgress() * 100) + "%";
 }
 
 /* ---------- 覆盖翻页（cover）：下一页从右盖上来 / 当前页滑出露出上一页 ---------- */
@@ -535,19 +527,6 @@ async function gotoChapter(n, opts = {}) {
     if (pendingNav && S.book) { const d = pendingNav; pendingNav = 0; setTimeout(() => chapterNav(d), 30); }
   }
 }
-/* 全书进度条拖动：拖动中只刷新百分比，松手跳章（听书中则无缝续播） */
-let bookSliderDrag = false;
-$("#bookSlider").addEventListener("input", (e) => {
-  bookSliderDrag = true;
-  $("#bookPct").textContent = e.target.value + "%";
-});
-$("#bookSlider").addEventListener("change", (e) => {
-  bookSliderDrag = false;
-  if (!S.book) return;
-  const target = Math.min(S.book.chapters.length - 1, Math.round(+e.target.value / 100 * (S.book.chapters.length - 1)));
-  if (S.playing) { S.follow = false; playFrom(target, 0); }
-  else { stopPlay(); gotoChapter(target, {}); }
-});
 /* 相邻章节预取 */
 function prefetchAdj(n) {
   if (!S.book) return;
@@ -775,15 +754,6 @@ function chapterNav(dir) {
 }
 $("#btnPrevChapter").addEventListener("click", () => chapterNav(-1));
 $("#btnNextChapter").addEventListener("click", () => chapterNav(1));
-$("#pageSlider").addEventListener("input", (e) => {
-  if (S.playing) S.follow = false;
-  if (isScroll()) {
-    const max = viewport.scrollHeight - viewport.clientHeight;
-    viewport.scrollTop = (+e.target.value / 100) * max;
-    return;
-  }
-  goToPage(+e.target.value - 1);
-});
 /* 播放面板：拖动跳句（松手生效，避免与播放推进打架） */
 $("#paraSlider").addEventListener("change", (e) => {
   if (!S.chapter) return;
