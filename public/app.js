@@ -411,7 +411,7 @@ function firstVisiblePara() {
 function flipToElement(el) {
   if (isScroll()) { el.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
   const target = pageOf(el);
-  if (target !== S.page) goToPage(target);
+  if (target !== S.page) goToPage(target, !S.playing); // 听书跟随翻页不加动画：省 CPU 给合成线程
 }
 
 /* 全书进度（章 + 章内页/滚动占比 → 百分比，番茄式右下角常显） */
@@ -670,6 +670,9 @@ async function loadChapter(n, restorePara = null) {
     S.chapterCache.set(n, data);
   }
   S.chapter = { index: n, title: data.title, paras: data.paras, segs: data.paras.map(splitSegs) };
+  // 扁平句表：句进度条与预合成预取共用（本章全部句子按顺序摊平）
+  S.flat = [];
+  S.chapter.segs.forEach((segs, pi) => segs.forEach((t, si) => S.flat.push({ p: pi, s: si, text: t })));
   S.cur = { ch: n, p: restorePara ?? 0 };
   $("#chapterTitle").textContent = data.title;
   $("#playerChapter").textContent = data.title;
@@ -756,23 +759,12 @@ $("#btnPrevChapter").addEventListener("click", () => chapterNav(-1));
 $("#btnNextChapter").addEventListener("click", () => chapterNav(1));
 /* 播放面板：拖动跳句（松手生效，避免与播放推进打架） */
 $("#paraSlider").addEventListener("change", (e) => {
-  if (!S.chapter) return;
-  const target = +e.target.value - 1;
-  let acc = 0;
-  for (let pi = 0; pi < S.chapter.segs.length; pi++) {
-    const segs = S.chapter.segs[pi];
-    if (target < acc + segs.length) {
-      if (!S.playing) resumeListeningElsewhere(pi, target - acc);
-      else playFrom(S.cur.ch, pi, target - acc);
-      return;
-    }
-    acc += segs.length;
-  }
+  if (!S.chapter || !S.flat) return;
+  const f = S.flat[+e.target.value - 1];
+  if (!f) return;
+  if (S.playing) playFrom(S.cur.ch, f.p, f.s);
+  else { S.pausedPos = null; playFrom(S.cur.ch, f.p, f.s); }
 });
-function resumeListeningElsewhere(p, s) {
-  S.pausedPos = null;
-  playFrom(S.cur.ch, p, s);
-}
 
 /* 目录 / 设置 / 音色弹窗 */
 function closeToc() { $("#toc").classList.add("hidden"); $("#tocMask").classList.add("hidden"); }
@@ -1419,16 +1411,12 @@ function highlightSeg(p, s) {
 
 /* 播放面板：本章句进度 */
 function updateParaSlider() {
-  if (!S.chapter) return;
+  if (!S.chapter || !S.flat) return;
   const slider = $("#paraSlider");
   if (!slider) return;
-  let idx = 0, total = 0;
-  S.chapter.segs.forEach((segs, pi) => {
-    segs.forEach((t, si) => {
-      if (pi < S.cur.p || (pi === S.cur.p && si < (S.cur.s || 0))) idx++;
-      total++;
-    });
-  });
+  let idx = flatIndexOf(S.cur.p, S.cur.s || 0);
+  if (idx < 0) idx = 0;
+  const total = S.flat.length;
   const pos = Math.min(total, idx + 1);
   slider.max = total;
   slider.value = pos;
@@ -1622,10 +1610,18 @@ async function speakSystemSeg(text) {
 }
 
 /* 计算下一句文本（供原生层预合成：播当前句时后台生成下一句，消除句间停顿） */
+function flatIndexOf(p, s) {
+  if (!S.flat) return -1;
+  for (let i = 0; i < S.flat.length; i++) {
+    const f = S.flat[i];
+    if (f.p === p && f.s === s) return i;
+  }
+  return -1;
+}
 function nextSentenceText(ch, p, s) {
-  const segs = S.chapter && ch === S.cur.ch ? S.chapter.segs[p] : null;
-  if (segs && s + 1 < segs.length) return segs[s + 1];
-  if (S.chapter && ch === S.cur.ch && p + 1 < S.chapter.paras.length) return S.chapter.segs[p + 1]?.[0] || "";
+  const idx = flatIndexOf(p, s);
+  if (idx >= 0 && S.flat[idx + 1]) return S.flat[idx + 1].text;
+  // 本章末句：取下一章首句（章节缓存通常已预取）
   const nxt = S.chapterCache.get(ch + 1);
   return nxt ? (nxt.paras[0] ? splitSegs(nxt.paras[0])[0] : "") : "";
 }
@@ -1647,10 +1643,18 @@ async function sentenceChain(ch, p, s, token, speakSeg, failTip) {
     if (!text) { s++; continue; }
     S.cur = { ch, p, s };
     highlightSeg(p, s);
-    // 内置语音：把下一句丢给原生层预合成（在播当前句的间隙完成，句间零等待）
-    if (S.mode === "builtin") {
-      const nx = nextSentenceText(ch, p, s);
-      if (nx) try { androidTts().prefetch(nx, +prefs.builtinVoice, Math.max(0.5, Math.min(2, prefs.rate / 100))); } catch {}
+    // 内置语音：把后面 2 句丢给独立预合成引擎（与播放完全并行，句间零等待）
+    if (S.mode === "builtin" && S.flat) {
+      const idx = flatIndexOf(p, s);
+      const speed = Math.max(0.5, Math.min(2, prefs.rate / 100));
+      for (const f of S.flat.slice(idx + 1, idx + 3)) {
+        try { androidTts().prefetch(f.text, +prefs.builtinVoice, speed); } catch {}
+      }
+      // 本章末尾：预取下一章首句
+      if (idx + 2 >= S.flat.length) {
+        const nx = nextSentenceText(ch, p, s);
+        if (nx) try { androidTts().prefetch(nx, +prefs.builtinVoice, speed); } catch {}
+      }
     }
     let spoke = false;
     try {

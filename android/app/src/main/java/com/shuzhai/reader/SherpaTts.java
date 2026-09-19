@@ -33,7 +33,6 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 内置离线语音桥（Kokoro int8 中英模型 · 10 精选音色 · Apache-2.0 可免费商用）。
@@ -42,7 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *   init()                        —— 后台初始化引擎（拷 espeak 数据 + 加载模型），完成后回调 ready
  *   isReady()                     —— 引擎是否就绪
  *   speak(text, sid, speed)       —— 朗读一句（句缓存命中直接播，否则流式合成边合边播），播完回调 done
- *   prefetch(text, sid, speed)    —— 后台预合成下一句到磁盘缓存（播放当前句的间隙执行，消除句间停顿）
+ *   prefetch(text, sid, speed)    —— 独立引擎后台预合成（与播放完全并行，内存不足时自动停用）
  *   stop()                        —— 立即停止合成与播放
  *   setVolumePage(boolean)        —— 音量键翻页开关
  *
@@ -62,7 +61,8 @@ public final class SherpaTts {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final ExecutorService prefetchWorker = Executors.newSingleThreadExecutor();
 
-    private OfflineTts tts;
+    private OfflineTts tts;            // 播放专用引擎（worker 线程独占，无锁）
+    private OfflineTts prefetchTts;    // 预合成专用引擎（内存充足时才创建，与播放完全并行）
     private AudioTrack track;
     private int sampleRate = 24000;
     private volatile boolean ready = false;
@@ -73,11 +73,9 @@ public final class SherpaTts {
     private PowerManager.WakeLock wakeLock;
     private File ttsCache;
 
-    /** 引擎互斥锁：同一时刻只允许一个合成任务使用模型（speak 合成 / prefetch 合成互斥） */
-    private final Object genLock = new Object();
-
-    /** 最新一条预合成请求（只保留最新，旧的自然过期） */
-    private final AtomicReference<PendingPrefetch> pendingPrefetch = new AtomicReference<>(null);
+    /** 预合成请求队列（容量 4，满则丢弃；仅预合成引擎消费） */
+    private final java.util.concurrent.BlockingQueue<PendingPrefetch> prefetchQueue =
+            new java.util.concurrent.LinkedBlockingQueue<>(4);
 
     private static final class PendingPrefetch {
         final String text;
@@ -92,7 +90,7 @@ public final class SherpaTts {
         volatile boolean stopped;
         long frames;
 
-        /** 流式合成：边合边播（未命中缓存时）。调用方必须已持有 genLock */
+        /** 流式合成：边合边播（未命中缓存时）。tts 引擎仅 worker 线程使用，无需加锁 */
         void run(String text, int sid, float speed) throws Exception {
             frames = 0;
             track.play();
@@ -184,6 +182,46 @@ public final class SherpaTts {
         this.context = context.getApplicationContext();
         this.assets = this.context.getAssets();
         this.ttsCache = new File(this.context.getCacheDir(), "tts-sentences");
+        prefetchWorker.execute(this::prefetchLoop); // 常驻：逐条消费预合成队列
+    }
+
+    /** 预合成常驻循环：独立引擎 + 独立线程，与播放完全并行 */
+    private void prefetchLoop() {
+        while (true) {
+            PendingPrefetch p;
+            try {
+                p = prefetchQueue.take();
+            } catch (InterruptedException e) {
+                return;
+            }
+            try {
+                File f = cacheFile(p.text, p.sid, p.speed);
+                if (f.isFile()) continue;
+                long t0 = SystemClock.elapsedRealtime();
+                GeneratedAudio audio = prefetchTts.generate(p.text, p.sid, p.speed);
+                writeFloatFile(f, audio.getSamples());
+                trimCache();
+                android.util.Log.d(TAG, "prefetch done: " + p.text.length() + "ch in "
+                        + (SystemClock.elapsedRealtime() - t0) + "ms");
+            } catch (Throwable t) {
+                android.util.Log.w(TAG, "prefetch failed: " + safeMsg(t));
+                try { Thread.sleep(300); } catch (InterruptedException ie) { return; }
+            }
+        }
+    }
+
+    /** 内存门控：总内存 ≥ 3.5GB 才建第二引擎（双引擎约 2×110MB 原生内存） */
+    private boolean canAffordPrefetchEngine() {
+        try {
+            android.app.ActivityManager am =
+                    (android.app.ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am == null) return false;
+            android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+            am.getMemoryInfo(mi);
+            return mi.totalMem >= (long) (3.5 * 1024 * 1024 * 1024);
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     /* ---------------- 网页可调用接口 ---------------- */
@@ -203,6 +241,19 @@ public final class SherpaTts {
                 initAudioTrack(sampleRate);
                 ready = true;
                 fire("ready", null);
+                // 预合成引擎与主引擎完全独立：内存充足才建（双引擎约 2×110MB 原生内存）。
+                // 失败静默降级为不预合成（听书仍可用，句间靠流式合成衔接）
+                try {
+                    if (canAffordPrefetchEngine()) {
+                        prefetchTts = new OfflineTts(assets, buildConfig(espeakDir));
+                        android.util.Log.i(TAG, "prefetch engine ready");
+                    } else {
+                        android.util.Log.i(TAG, "low RAM, prefetch engine disabled");
+                    }
+                } catch (Throwable t) {
+                    prefetchTts = null;
+                    android.util.Log.w(TAG, "prefetch engine init failed: " + safeMsg(t));
+                }
             } catch (Throwable t) {
                 failed = true;
                 fire("error", "初始化失败: " + safeMsg(t));
@@ -224,20 +275,13 @@ public final class SherpaTts {
             acquireWake();
             requestFocus();
             try {
+                android.util.Log.d(TAG, "speak start: len=" + text.length());
                 File cached = cacheFile(text, sid, speed);
-                if (!cached.isFile()) {
-                    // 预合成可能正在后台生成同一句：拿到引擎锁后再查一次缓存——
-                    // 预合成完成后必然落盘，这样绝不重复合成（最坏只等它做完）
-                    synchronized (genLock) {
-                        cached = cacheFile(text, sid, speed);
-                        if (!cached.isFile()) {
-                            job.run(text, sid, speed);
-                            if (!job.stopped) fire("done", null);
-                            return;
-                        }
-                    }
+                if (cached.isFile()) {
+                    job.playCached(cached);
+                } else {
+                    job.run(text, sid, speed); // 流式：出首音很快，不等整句合成
                 }
-                job.playCached(cached);
                 if (!job.stopped) fire("done", null);
             } catch (Throwable t) {
                 if (!job.stopped) fire("error", safeMsg(t));
@@ -248,27 +292,8 @@ public final class SherpaTts {
     /** 预合成下一句：在当前句播放的间隙后台执行，写入磁盘缓存（只保留最新一条请求） */
     @android.webkit.JavascriptInterface
     public void prefetch(final String text, final int sid, final float speed) {
-        if (!ready || text == null || text.isEmpty()) return;
-        pendingPrefetch.set(new PendingPrefetch(text, sid, speed));
-        prefetchWorker.execute(() -> {
-            PendingPrefetch p = pendingPrefetch.getAndSet(null);
-            if (p == null) return;
-            try {
-                File f = cacheFile(p.text, p.sid, p.speed);
-                if (f.isFile()) return;
-                long t0 = SystemClock.elapsedRealtime();
-                GeneratedAudio audio;
-                synchronized (genLock) {
-                    audio = tts.generate(p.text, p.sid, p.speed);
-                }
-                writeFloatFile(f, audio.getSamples());
-                trimCache();
-                android.util.Log.d(TAG, "prefetch done: " + p.text.length() + "ch in "
-                        + (SystemClock.elapsedRealtime() - t0) + "ms");
-            } catch (Throwable t) {
-                android.util.Log.w(TAG, "prefetch failed: " + safeMsg(t));
-            }
-        });
+        if (!ready || prefetchTts == null || text == null || text.isEmpty()) return;
+        prefetchQueue.offer(new PendingPrefetch(text, sid, speed)); // 队列满=预合成跟不上，丢弃
     }
 
     @android.webkit.JavascriptInterface
@@ -352,7 +377,8 @@ public final class SherpaTts {
                 new OfflineTtsKittenModelConfig(),
                 new OfflineTtsPocketModelConfig(),
                 new OfflineTtsSupertonicModelConfig(),
-                4, false, "cpu");
+                Math.min(8, Math.max(4, Runtime.getRuntime().availableProcessors())),
+                false, "cpu");
         return new OfflineTtsConfig(
                 model,
                 ASSET_DIR + "/phone-zh.fst," + ASSET_DIR + "/date-zh.fst,"
@@ -374,7 +400,7 @@ public final class SherpaTts {
                         .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                         .setSampleRate(sampleRate)
                         .build())
-                .setBufferSizeInBytes(Math.max(buf, 64 * 1024))
+                .setBufferSizeInBytes(Math.max(buf, 256 * 1024))
                 .setTransferMode(AudioTrack.MODE_STREAM)
                 .build();
     }
