@@ -107,10 +107,29 @@ state2 = json.loads(st2)
 diag = ev("buildDiagnosticsText()", True) or ""
 print("诊断摘要:", diag.splitlines()[0][:60] if diag else "EMPTY")
 
+# 双引擎第二口径断言（PM 备忘录）：CI runner 内存 ≥3.5GB → 预合成引擎自动启用；
+# builtinForce 强制内置播放 → 预合成引擎并行供数 → rtfPrefetch 统计应积累。
+# 注：CI 双核 RTF 极高，第二口径完整触发（cacheHits>10 稳态）需真机；此处验证数据源被运行
+ev("window.__sz.prefs.builtinForce = true")
+ev("window.__sz.playFrom(window.__sz.state.cur.ch, window.__sz.state.cur.p || 0)")
+pf_ok, pf_diag = False, {}
+for _ in range(75):
+    time.sleep(4)
+    d = ev("(window.AndroidTts && window.AndroidTts.getDiagnostics) ? window.AndroidTts.getDiagnostics() : '{}'")
+    try:
+        dj = json.loads(d)
+    except Exception:
+        continue
+    if dj.get("rtfPrefetchCount", 0) >= 3:
+        pf_ok = True
+        pf_diag = dj
+        break
+print("双引擎口径:", "OK" if pf_ok else "数据不足", pf_diag)
+
 ws.close()
 
 ok = (bool(book) and bool(chapter) and state.get("playing") is True
       and state2.get("mode") == "system" and state2.get("playing") is True
-      and state2.get("slow") is True and len(diag) > 100)
+      and state2.get("slow") is True and len(diag) > 100 and pf_ok)
 print("SMOKE", "OK" if ok else "FAILED")
 sys.exit(0 if ok else 1)

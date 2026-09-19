@@ -1259,6 +1259,13 @@ async function previewBuiltin(sid) {
   }
   try {
     await builtinSpeak("你好，这是音色试听，愿好书常伴你身边。", sid, Math.max(0.5, Math.min(2, prefs.rate / 100)));
+    // 试听即探测：一次真实合成就有 RTF 数据。偏慢机型立刻提示并记录，
+    // 让「选择时点前置」生效（选内置时弹确认，而不是播了几十分钟才降级）
+    if (androidTts()?.isSlowSynth?.() === true && !prefs.slowBuiltin) {
+      prefs.slowBuiltin = true;
+      toast("本机合成速度偏慢，内置音色长句朗读会有停顿。建议改用系统语音或接入豆包音色", 5000, openVoiceSheet);
+      if (voiceSheetOpen() && voiceTab === "builtin") renderBuiltinVoices();
+    }
   } catch (e) { if (!e.stopped) toast("试听失败：" + (e.message || e), 3000); }
 }
 
@@ -2027,7 +2034,7 @@ async function buildDiagnosticsText() {
     `播放 RTF: ${d.rtfAvg || "-"}（${d.rtfCount || 0} 句）· 预合成 RTF: ${d.rtfPrefetchAvg || "-"}（${d.rtfPrefetchCount || 0} 句）`,
     `缓存: 命中 ${d.cacheHits ?? 0} / 未命中 ${d.cacheMisses ?? 0} · 缓存文件 ${d.cacheFiles ?? 0}`,
     "== 会话 ==",
-    `版本: v3.2 · 链路: ${S.mode || "-"} · 音色来源: ${prefs.voiceMode || "自动"} · 语速 ${(prefs.rate / 100).toFixed(1)}x · 系统音色数: ${nv ? nv.length : "未获取"} · 电脑在线: ${serverAlive}`,
+    `版本: ${(document.querySelector(".topbar h1 .ver")?.textContent || "?")} · 链路: ${S.mode || "-"} · 音色来源: ${prefs.voiceMode || "自动"} · 语速 ${(prefs.rate / 100).toFixed(1)}x · 系统音色数: ${nv ? nv.length : "未获取"} · 电脑在线: ${serverAlive}`,
   ].join("\n");
 }
 

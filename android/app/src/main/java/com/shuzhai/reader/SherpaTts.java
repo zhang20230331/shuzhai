@@ -392,13 +392,13 @@ public final class SherpaTts {
         sb.append("{\"model\":\"").append(jsonEsc(android.os.Build.MODEL)).append('"');
         sb.append(",\"brand\":\"").append(jsonEsc(android.os.Build.BRAND)).append('"');
         sb.append(",\"release\":\"").append(jsonEsc(android.os.Build.VERSION.RELEASE)).append('"');
-        sb.append(",\"ramGB\":").append(String.format("%.1f", ram / 1073741824.0));
+        sb.append(",\"ramGB\":").append(String.format(java.util.Locale.US, "%.1f", ram / 1073741824.0));
         sb.append(",\"cores\":").append(Runtime.getRuntime().availableProcessors());
         sb.append(",\"ready\":").append(ready);
         sb.append(",\"prefetchEngine\":").append(prefetchTts != null);
-        sb.append(",\"rtfAvg\":").append(rtfCount > 0 ? String.format("%.2f", rtfAvg) : "null");
+        sb.append(",\"rtfAvg\":").append(rtfCount > 0 ? String.format(java.util.Locale.US, "%.2f", rtfAvg) : "null");
         sb.append(",\"rtfCount\":").append(rtfCount);
-        sb.append(",\"rtfPrefetchAvg\":").append(rtfPrefetchCount > 0 ? String.format("%.2f", rtfPrefetchAvg) : "null");
+        sb.append(",\"rtfPrefetchAvg\":").append(rtfPrefetchCount > 0 ? String.format(java.util.Locale.US, "%.2f", rtfPrefetchAvg) : "null");
         sb.append(",\"rtfPrefetchCount\":").append(rtfPrefetchCount);
         sb.append(",\"cacheHits\":").append(cacheHits);
         sb.append(",\"cacheMisses\":").append(cacheMisses);
