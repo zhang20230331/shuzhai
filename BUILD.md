@@ -2,11 +2,36 @@
 
 本工程已配置 GitHub Actions 云构建：**不需要 Mac、不需要本地装任何构建工具**。
 - iOS：macOS 云机器编译出**未签名 IPA** → 你的巨魔商店（TrollStore）直接安装，永久有效
-- Android：Ubuntu 云机器编译出 **debug 签名 APK** → 下载直接装
+- Android：Ubuntu 云机器编译出 **固定签名 debug APK** → 下载直接装
+
+CI 同时会在安卓模拟器（x86_64 变体）与 iOS 模拟器里实际启动应用截图回归，产物见 Actions Artifacts：
+- `shuzhai-android-apk` / `shuzhai-ios-ipa`：安装包
+- `shuzhai-android-emulator-screens` / `shuzhai-ios-simulator-screens`：模拟器实测截图
 
 App 是离线优先的：书籍存在手机里，**不依赖电脑开机**。
+- 安卓内置 10 个精选离线音色（Kokoro 模型随 APK 打包，音色子集化 103→10，体积省约 47MB）
 - 在家（电脑开着、同一 WiFi）：自动使用微软 Edge 神经语音（晓晓/云希…）
-- 外出/电脑关机：自动切换系统语音（iOS 用 Siri 声音，安卓用系统 TTS），离线可听
+- 外出/电脑关机：自动切换内置音色（安卓）或系统语音，离线可听
+
+## ★ 覆盖安装说明（重要）
+
+自 v3.0 起安卓包使用**仓库内置固定签名**（`android/app/shuzhai.keystore`，PKCS12）：
+- **v3.0 之后的每个新包都可以直接覆盖安装旧版**，不再需要卸载
+- 版本号随 CI 运行次数自动递增，不会出现降级拒绝
+- ⚠️ **从旧版（v2.x，历史 CI 临时签名）升级到 v3.0 需要先卸载一次** —— 旧包签名不同是历史遗留，仅此一次
+
+## 本地构建（可选）
+
+```bash
+# 1) 部署语音资源（下载 AAR+模型，子集化音色；需 python3 + pip install onnx）
+python scripts/setup_tts.py
+# 2) 同步 web 资源
+npx cap sync android
+# 3) 编译（需 JDK 17+ 和 Android SDK；local.properties 写 sdk.dir=E:/你的SDK路径）
+cd android && ./gradlew assembleDebug
+# 模拟器用变体（追加 x86_64 ABI）：
+./gradlew assembleDebug -PabiExtra=x86_64
+```
 
 ---
 

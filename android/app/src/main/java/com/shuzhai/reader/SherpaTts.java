@@ -40,6 +40,7 @@ import java.util.concurrent.Executors;
  * 事件统一回调 window.__szNativeTtsEvent(type, msg)：ready / done / error / focusloss。
  */
 public final class SherpaTts {
+    private static final String TAG = "SherpaTts";
     /** 音量键翻页开关（MainActivity.dispatchKeyEvent 读取） */
     public static volatile boolean volumePage = false;
 
@@ -51,6 +52,7 @@ public final class SherpaTts {
 
     private OfflineTts tts;
     private AudioTrack track;
+    private int sampleRate = 24000;
     private volatile boolean ready = false;
     private volatile boolean failed = false;
     private volatile boolean initStarted = false;
@@ -69,29 +71,54 @@ public final class SherpaTts {
             GenerationConfig g = new GenerationConfig();
             g.setSid(sid);
             g.setSpeed(speed);
-            tts.generateWithConfigAndCallback(text, g, samples -> {
-                int off = 0;
-                while (off < samples.length) {
-                    if (stopped) return 0;
-                    int n = track.write(samples, off, samples.length - off,
-                            AudioTrack.WRITE_NON_BLOCKING);
-                    if (n < 0) return 0;
-                    if (n == 0) {
-                        try { Thread.sleep(20); } catch (InterruptedException e) { return 0; }
-                    } else {
-                        off += n;
-                        frames += n;
-                    }
+            // 显式匿名类实现回调：JNI 侧按 "invoke([F)Ljava/lang/Integer;" 查找方法，
+            // Java lambda 经 D8 脱糖后返回原始 int 签名不匹配，会触发 NoSuchMethodError 崩溃
+            tts.generateWithConfigAndCallback(text, g,
+                    new kotlin.jvm.functions.Function1<float[], Integer>() {
+                        private long stallStart = 0; // 写入连续停滞计时（音频 HAL 异常保护）
+
+                        @Override
+                        public Integer invoke(float[] samples) {
+                            int off = 0;
+                            while (off < samples.length) {
+                                if (stopped) return 0;
+                                int n = track.write(samples, off, samples.length - off,
+                                        AudioTrack.WRITE_NON_BLOCKING);
+                                if (n < 0) return 0;
+                                if (n == 0) {
+                                    // 音频系统不消费时缓冲长期满：超过 15s 放弃本句，绝不无限阻塞
+                                    if (stallStart == 0) stallStart = android.os.SystemClock.elapsedRealtime();
+                                    else if (android.os.SystemClock.elapsedRealtime() - stallStart > 15000) {
+                                        android.util.Log.w(TAG, "audio sink stalled, abort sentence");
+                                        return 0;
+                                    }
+                                    try { Thread.sleep(20); } catch (InterruptedException e) { return 0; }
+                                } else {
+                                    stallStart = 0;
+                                    off += n;
+                                    frames += n;
+                                }
+                            }
+                            return stopped ? 0 : 1;
+                        }
+                    });
+            // 合成结束后缓冲里可能还有没播完的声音，等它排空。
+            // 排空上限 = 时长×1.5 + 3s：正常路径照常等完，音频系统异常时绝不无限等待
+            long maxWaitMs = (long) (frames / (float) sampleRate * 1500) + 3000;
+            long start = android.os.SystemClock.elapsedRealtime();
+            long head = 0;
+            while (!stopped && (head = (long) track.getPlaybackHeadPosition()) < frames) {
+                if (android.os.SystemClock.elapsedRealtime() - start > maxWaitMs) {
+                    android.util.Log.w(TAG, "drain timeout, head=" + head + " frames=" + frames);
+                    break;
                 }
-                return stopped ? 0 : 1;
-            });
-            // 合成结束后缓冲里可能还有没播完的声音，等它排空
-            while (!stopped && (long) track.getPlaybackHeadPosition() < frames) {
                 try { Thread.sleep(25); } catch (InterruptedException e) { return; }
             }
             if (stopped) {
                 try { track.pause(); track.flush(); } catch (Throwable ignored) {}
             }
+            android.util.Log.d(TAG,
+                    "speak done: text=" + text.length() + "ch frames=" + frames + " head=" + head);
         }
     }
 
@@ -186,7 +213,8 @@ public final class SherpaTts {
                 "", 1, 0.2f);
     }
 
-    private void initAudioTrack(int sampleRate) {
+    private void initAudioTrack(int sr) {
+        sampleRate = sr;
         int buf = AudioTrack.getMinBufferSize(sampleRate,
                 AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT);
         track = new AudioTrack.Builder()

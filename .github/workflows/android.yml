@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK + 模拟器实测
 
 on:
   workflow_dispatch:
@@ -26,25 +26,31 @@ jobs:
         uses: actions/cache@v4
         with:
           path: scripts/.tts-cache
-          key: tts-${{ hashFiles('scripts/setup_tts.py') }}
+          key: tts-${{ hashFiles('scripts/setup_tts.py', 'scripts/subset_voices.py') }}
 
       - name: 安装依赖
         run: set -o pipefail; npm ci 2>&1 | tee npm.log
 
-      # 下载 sherpa-onnx AAR + Kokoro int8 模型并部署进 android 工程（含缓存命中则秒过）
+      # 下载 sherpa-onnx AAR + Kokoro int8 模型，音色子集化（103→10）并部署进 android 工程
       - name: 部署离线语音资源
         run: set -o pipefail; python3 scripts/setup_tts.py 2>&1 | tee tts-setup.log
 
       - name: 同步 Web 资源与插件
         run: set -o pipefail; npx cap sync android 2>&1 | tee sync.log
 
-      - name: 编译 APK
+      - name: 编译 APK（真机双 ABI）
         run: |
           set -o pipefail
           cd android
           chmod +x gradlew
           echo "sdk.dir=${ANDROID_HOME:-$ANDROID_SDK_ROOT}" > local.properties
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../gradle.log
+
+      - name: 编译模拟器变体 APK（追加 x86_64）
+        run: |
+          set -o pipefail
+          cd android
+          ./gradlew assembleDebug -PabiExtra=x86_64 --no-daemon 2>&1 | tee ../gradle-x86.log
 
       - name: 上传 APK
         uses: actions/upload-artifact@v4
@@ -57,10 +63,116 @@ jobs:
         if: failure()
         run: |
           {
-            for f in android/gradle.log sync.log npm.log tts-setup.log; do
+            for f in android/gradle.log android/gradle-x86.log sync.log npm.log tts-setup.log; do
               [ -f "$f" ] || continue
               echo "===== $f ====="
               grep -iE "FAILURE|What went wrong|error:|Error:|Exception|Exit code" "$f" | tail -6
               tail -18 "$f"
             done
           } 2>/dev/null | fold -w 640 | head -10 | sed 's/^/::error::/' || true
+
+  emulator-test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 缓存 TTS 资源
+        uses: actions/cache@v4
+        with:
+          path: scripts/.tts-cache
+          key: tts-${{ hashFiles('scripts/setup_tts.py', 'scripts/subset_voices.py') }}
+
+      - name: 安装依赖并部署语音资源
+        run: |
+          set -o pipefail
+          npm ci
+          python3 scripts/setup_tts.py
+          npx cap sync android
+
+      - name: 编译模拟器变体 APK
+        run: |
+          cd android
+          chmod +x gradlew
+          echo "sdk.dir=${ANDROID_HOME:-$ANDROID_SDK_ROOT}" > local.properties
+          ./gradlew assembleDebug -PabiExtra=x86_64 --no-daemon
+
+      - name: KVM 权限
+        run: echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          && sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+
+      - name: AVD 缓存
+        id: avd-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api34-x86_64-pixel6
+
+      - name: 创建 AVD（无缓存时）
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none
+          disable-animations: true
+          script: echo "预创建 AVD 完成"
+
+      - name: 启动模拟器并实测应用
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            set -x
+            mkdir -p shots
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb shell am start -n com.shuzhai.reader/.MainActivity
+            sleep 10
+            adb exec-out screencap -p > shots/01-launch.png
+            # 打开名著书城（Pixel6 1080x2400 已校准坐标）
+            adb shell input tap 430 205
+            sleep 2
+            adb exec-out screencap -p > shots/02-store.png
+            # 导入第一本书（西游记）→ 自动进阅读器
+            adb shell input tap 293 2041
+            sleep 12
+            adb exec-out screencap -p > shots/03-reader.png
+            # 呼出菜单
+            adb shell input tap 540 1200
+            sleep 1.5
+            adb exec-out screencap -p > shots/04-menu.png
+            # 点听书（内置离线语音）
+            adb shell input tap 412 2248
+            sleep 40
+            adb exec-out screencap -p > shots/05-listening.png
+            # 二次安装验证覆盖安装（同签名新包直接覆盖）
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb shell dumpsys package com.shuzhai.reader | grep versionName
+            adb logcat -d | grep -aE "FATAL|SIGABRT" | head -5 || true
+
+      - name: 上传实测截图
+        uses: actions/upload-artifact@v4
+        with:
+          name: shuzhai-android-emulator-screens
+          path: shots/*.png
+          retention-days: 30

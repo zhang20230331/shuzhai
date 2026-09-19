@@ -90,6 +90,17 @@ public class MainActivity extends BridgeActivity {
 
         // 网页通过此桥使用内置离线语音（Kokoro 模型随 APK 打包，离线可用）
         bridge.getWebView().addJavascriptInterface(new SherpaTts(this), "AndroidTts");
+
+        // 网页通过此桥在阅读/听书期间保持屏幕常亮（FLAG_KEEP_SCREEN_ON 不上锁，用户可随时退出）
+        bridge.getWebView().addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void keep(final boolean on) {
+                runOnUiThread(() -> {
+                    if (on) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                    else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                });
+            }
+        }, "AndroidScreen");
     }
 
     /** 音量键翻页（阅读中=翻页，听书中/书架=正常音量），开关由网页经 AndroidTts.setVolumePage 控制 */

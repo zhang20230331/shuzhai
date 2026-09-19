@@ -56,6 +56,39 @@ jobs:
           path: shuzhai-unsigned.ipa
           retention-days: 30
 
+      - name: iOS 模拟器实测（启动 + 书架渲染截图）
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -configuration Debug \
+            -derivedDataPath "$GITHUB_WORKSPACE/build-sim" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build | tee xcodebuild-sim.log
+          APP_PATH=$(find "$GITHUB_WORKSPACE/build-sim" -type d -name "App.app" -path "*iphonesimulator*" | head -1)
+          echo "SIM_APP_PATH=$APP_PATH"
+          test -n "$APP_PATH"
+          mkdir -p shots
+          xcrun simctl boot "iPhone 16" || true
+          xcrun simctl bootstatus "iPhone 16" -b
+          xcrun simctl install "iPhone 16" "$APP_PATH"
+          xcrun simctl launch "iPhone 16" com.shuzhai.reader
+          sleep 10
+          xcrun simctl io "iPhone 16" screenshot shots/01-ios-launch.png
+          sleep 5
+          xcrun simctl io "iPhone 16" screenshot shots/02-ios-shelf.png
+
+      - name: 上传 iOS 实测截图
+        uses: actions/upload-artifact@v4
+        with:
+          name: shuzhai-ios-simulator-screens
+          path: shots/*.png
+          retention-days: 30
+
       - name: 失败时公开日志
         if: failure()
         run: |
@@ -63,7 +96,10 @@ jobs:
             echo "=== xcodebuild.log 全量 ==="
             cat xcodebuild.log 2>/dev/null | tr '\n' '|' | fold -w 640
             echo ""
+            echo "=== xcodebuild-sim.log 全量 ==="
+            cat xcodebuild-sim.log 2>/dev/null | tr '\n' '|' | fold -w 640
+            echo ""
             echo "=== sync.log 尾部 ==="
             tail -10 sync.log 2>/dev/null | tr '\n' '|' | fold -w 640
             echo ""
-          } | head -14 | sed 's/^/::error::/' || true
+          } | head -16 | sed 's/^/::error::/' || true

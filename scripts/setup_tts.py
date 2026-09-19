@@ -5,7 +5,8 @@
 下载并放置：
   1. sherpa-onnx 官方 AAR（含 JNI so + Kotlin API，Apache-2.0）
      -> android/app/libs/sherpa-onnx.aar
-  2. Kokoro int8 中英双语模型（103 个音色，Apache-2.0，可免费商用）
+  2. Kokoro int8 中英双语模型（Apache-2.0，可免费商用），并做音色子集化：
+     103 个音色精选为 10 个（voices.bin 51MB -> 4MB），模型元数据同步改写
      -> android/app/src/main/assets/tts/
 
 用法（本地或 CI，均可重复执行，已就绪的文件会跳过）：
@@ -15,10 +16,14 @@
 """
 
 import shutil
+import subprocess
 import sys
 import tarfile
 import urllib.request
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import subset_voices  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "scripts" / ".tts-cache"
@@ -145,6 +150,36 @@ def deploy_model(model_tar: Path) -> None:
     )
 
 
+def ensure_onnx() -> None:
+    try:
+        import onnx  # noqa: F401
+    except ImportError:
+        print("[依赖] 安装 onnx（模型元数据改写需要）")
+        subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "onnx"], check=True)
+
+
+def subset_assets() -> None:
+    """音色子集化：voices.bin 103 -> 10，模型元数据 n_speakers 同步改写。
+    幂等：已是子集尺寸则跳过。"""
+    voices = ASSETS_TTS / "voices.bin"
+    model = ASSETS_TTS / "model.int8.onnx"
+    expected_voices = len(subset_voices.KEEP) * subset_voices.VOICE_BYTES
+    if voices.stat().st_size != expected_voices:
+        subset_voices.subset(voices, voices)
+    else:
+        print("[跳过] voices.bin 已是子集")
+    if model.stat().st_size != MODEL_SIZE_PATCHED:
+        ensure_onnx()
+        subset_voices.patch_model(model)
+    else:
+        print("[跳过] 模型元数据已改写")
+
+
+# 原始 int8 模型 114299010 字节；元数据改写后 114296204 字节（id2speaker 等长串变短）。
+# 不相等就重新 patch（幂等），用体积差判等避免重复加载 110MB 模型。
+MODEL_SIZE_PATCHED = 114296204
+
+
 def main() -> None:
     print(f"== 书斋离线语音资源部署 ==")
     print(f"工程根目录: {ROOT}")
@@ -154,6 +189,7 @@ def main() -> None:
     model_tar = download(MODEL_URL, CACHE / f"{MODEL_NAME}.tar.bz2", MODEL_SIZE)
     deploy_aar(android_tar)
     deploy_model(model_tar)
+    subset_assets()
     print("== 完成 ==")
 
 

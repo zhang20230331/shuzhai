@@ -10,20 +10,23 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=24">
+<link rel="stylesheet" href="style.css?v=26">
 </head>
 <body>
 
 <!-- 书架 -->
 <div id="shelf" class="page">
   <header class="topbar">
-    <h1>书斋 <span class="ver">v2.4</span></h1>
+    <h1>书斋 <span class="ver">v3.0</span><span id="readStat" class="read-stat"></span></h1>
     <div class="topbar-actions">
       <button id="btnStore" class="ghost-btn">名著书城</button>
       <button id="btnImportUrl" class="ghost-btn">链接导入</button>
       <button id="btnUpload" class="primary-btn">＋ 导入 TXT</button>
     </div>
   </header>
+  <div id="shelfSearchRow" class="shelf-search hidden">
+    <input id="shelfSearch" type="search" placeholder="搜索书名" autocomplete="off">
+  </div>
   <main id="bookGrid" class="grid"></main>
   <div id="shelfEmpty" class="empty hidden">
     <div class="empty-icon">📖</div>
@@ -175,18 +178,38 @@
   <!-- 目录抽屉 -->
   <div id="tocMask" class="mask hidden"></div>
   <aside id="toc" class="drawer hidden">
-    <div class="drawer-head">目录 <span id="tocCount"></span></div>
+    <div class="drawer-head">目录 <span id="tocCount"></span>
+      <button id="tocOrder" class="toc-order">倒序</button>
+    </div>
     <div class="toc-search"><input id="tocSearch" type="search" placeholder="搜索章节名称" autocomplete="off"></div>
     <div id="tocList"></div>
   </aside>
 
-  <!-- 设置面板 -->
+  <!-- 设置面板（番茄式：字号/行距/字距/字体/翻页方式/主题/亮度/自动阅读） -->
   <div id="settingsSheet" class="sheet hidden">
     <div class="sheet-row"><span>字号</span>
       <div class="stepper"><button id="fontMinus">A−</button><span id="fontLabel"></span><button id="fontPlus">A＋</button></div>
     </div>
     <div class="sheet-row"><span>行距</span>
       <div class="stepper"><button id="lhMinus">−</button><span id="lhLabel"></span><button id="lhPlus">＋</button></div>
+    </div>
+    <div class="sheet-row"><span>字距</span>
+      <div class="stepper"><button id="lsMinus">−</button><span id="lsLabel"></span><button id="lsPlus">＋</button></div>
+    </div>
+    <div class="sheet-row"><span>字体</span>
+      <div class="timer-chips" id="fontChips">
+        <button data-ff="sans">默认</button>
+        <button data-ff="song">宋体</button>
+        <button data-ff="kai">楷体</button>
+      </div>
+    </div>
+    <div class="sheet-row"><span>翻页方式</span>
+      <div class="timer-chips" id="flipChips">
+        <button data-flip="cover">覆盖</button>
+        <button data-flip="slide">平移</button>
+        <button data-flip="none">无</button>
+        <button data-flip="scroll">上下滚动</button>
+      </div>
     </div>
     <div class="sheet-row"><span>主题</span>
       <div class="themes">
@@ -200,6 +223,12 @@
       <div class="dim-ctrl">
         <input type="range" id="dimRange" min="20" max="100" step="5" value="100">
         <span id="dimLabel">100%</span>
+      </div>
+    </div>
+    <div class="sheet-row"><span>自动阅读</span>
+      <div class="stepper">
+        <button id="autoToggle" class="auto-toggle">关</button>
+        <button id="autoMinus">−</button><span id="autoLabel">5</span><button id="autoPlus">＋</button>
       </div>
     </div>
   </div>
@@ -225,7 +254,7 @@
     </div>
   </div>
 <audio id="audio" preload="auto"></audio>
-<script src="local.js?v=25"></script>
-<script src="app.js?v=25"></script>
+<script src="local.js?v=26"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>

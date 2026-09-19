@@ -1,5 +1,10 @@
 apply plugin: 'com.android.application'
 
+// 版本号随 CI 运行次数自增：保证每次云构建都能覆盖安装旧版。
+// 本地构建兜底 2000（始终大于历史版本），CI 用 run number 继续往上走。
+def ciRun = (System.getenv("GITHUB_RUN_NUMBER") ?: "0").toInteger()
+def versionCodeAuto = ciRun > 0 ? 1000 + ciRun : 2000
+
 android {
     namespace = "com.shuzhai.reader"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,12 +12,15 @@ android {
         applicationId "com.shuzhai.reader"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 16
-        versionName "2.5"
+        versionCode versionCodeAuto
+        versionName "3.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
-            // 只打包真机 ABI，排除模拟器用 x86/x86_64，控制 APK 体积
+            // 只打包真机 ABI，排除模拟器用 x86/x86_64，控制 APK 体积。
+            // 模拟器实测（本地/CI）追加 -PabiExtra=x86_64 生成第三 ABI 变体
             abiFilters 'arm64-v8a', 'armeabi-v7a'
+            def abiExtra = project.findProperty("abiExtra")
+            if (abiExtra) abiFilters abiExtra
         }
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -20,8 +28,23 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // 固定签名密钥（debug/release 同一把）：CI 每次构建产物签名一致，
+    // 新 APK 可以直接覆盖安装旧版，不再需要先卸载。
+    signingConfigs {
+        shuzhai {
+            storeFile file('shuzhai.keystore')
+            storePassword 'sz-sign-2026'
+            keyAlias 'shuzhai'
+            keyPassword 'sz-sign-2026'
+            storeType 'PKCS12'
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.shuzhai
+        }
         release {
+            signingConfig signingConfigs.shuzhai
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

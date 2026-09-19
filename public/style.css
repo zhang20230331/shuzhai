@@ -67,6 +67,17 @@ button { font-family: inherit; cursor: pointer; }
 .empty { text-align: center; padding: 90px 30px; color: var(--muted); }
 .empty-icon { font-size: 44px; margin-bottom: 10px; }
 .empty-sub { font-size: 12px; }
+/* 书架搜索（有书时显示） */
+.shelf-search { padding: 12px 16px 0; max-width: 720px; margin: 0 auto; }
+.shelf-search input {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--panel); color: var(--fg);
+  padding: 9px 12px; font-size: 14px; outline: none;
+}
+.shelf-search input:focus { border-color: var(--accent); }
+/* 今日阅读时长（书架标题旁） */
+.read-stat { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 8px; }
 
 /* ---------- 阅读器（横向分页 + 沉浸式，参考番茄小说） ---------- */
 /* 100vh 兜底：老内核 WebView 不支持 100dvh，阅读页高度会塌成 0 导致全白 */
@@ -96,9 +107,35 @@ button { font-family: inherit; cursor: pointer; }
 #track p {
   margin: 0 0 .85em; font-size: var(--fs, 19px); line-height: var(--lh, 1.85);
   text-align: justify; text-indent: 2em;
+  letter-spacing: var(--ls, 0);
 }
 #track .seg { border-radius: 4px; }
 #track .seg.on {
+  background: var(--seg-hl, rgba(79,70,229,.15));
+  box-shadow: 0 0 0 2px var(--seg-hl, rgba(79,70,229,.15));
+}
+
+/* 上下滚动模式（番茄式）：viewport 原生纵向滚动，正文取消多列分页 */
+#viewport.scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+#viewport.scroll #track { height: auto; padding-top: 1px; padding-bottom: calc(20px + var(--safe-bottom)); }
+
+/* 覆盖翻页动画浮层：克隆整轨做整页滑动（下一页盖上 / 当前页滑出） */
+.flip-overlay {
+  position: absolute; inset: 0; overflow: hidden;
+  background: var(--reader-bg);
+  z-index: 2;
+  transition: transform .3s ease;
+}
+.track-clone {
+  height: 100%; column-fill: auto; box-sizing: content-box;
+  pointer-events: none;
+}
+.track-clone p {
+  margin: 0 0 .85em; font-size: var(--fs, 19px); line-height: var(--lh, 1.85);
+  text-align: justify; text-indent: 2em;
+  letter-spacing: var(--ls, 0);
+}
+.track-clone .seg.on {
   background: var(--seg-hl, rgba(79,70,229,.15));
   box-shadow: 0 0 0 2px var(--seg-hl, rgba(79,70,229,.15));
 }
@@ -311,6 +348,8 @@ button { font-family: inherit; cursor: pointer; }
   border-radius: 8px; padding: 6px 12px; font-size: 13px;
 }
 .stepper span { min-width: 30px; text-align: center; font-size: 14px; }
+.stepper .auto-toggle { min-width: 56px; }
+.stepper .auto-toggle.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 700; }
 .themes { display: flex; gap: 12px; }
 .theme-dot { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--border); background: var(--bg); }
 .theme-dot.active { border-color: var(--accent); }
