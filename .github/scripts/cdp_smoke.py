@@ -104,7 +104,7 @@ st2 = ev("JSON.stringify({mode: window.__sz.state.mode, playing: window.__sz.sta
 print("降级状态:", st2)
 state2 = json.loads(st2)
 # 诊断信息可生成
-diag = ev("buildDiagnosticsText()") or ""
+diag = ev("buildDiagnosticsText()", True) or ""
 print("诊断摘要:", diag.splitlines()[0][:60] if diag else "EMPTY")
 
 ws.close()
