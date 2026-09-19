@@ -127,7 +127,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-api34-x86_64-pixel6
+          key: avd-api34-x86_64-pixel6-4gb
 
       - name: 创建 AVD（无缓存时）
         if: steps.avd-cache.outputs.cache-hit != 'true'
@@ -140,7 +140,13 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none
           disable-animations: true
-          script: echo "预创建 AVD 完成"
+          script: |
+            echo "预创建 AVD 完成"
+            # 访客内存拉到 4GB（≥3.5GB 门控 → 预合成引擎自动启用，供双引擎口径断言）
+            for f in ~/.android/avd/*.avd/config.ini; do
+              [ -f "$f" ] || continue
+              grep -q "hw.ramSize" "$f" && sed -i 's|hw.ramSize.*|hw.ramSize = 4096|' "$f" || echo "hw.ramSize = 4096" >> "$f"
+            done
 
       - name: 启动模拟器并实测应用
         uses: reactivecircus/android-emulator-runner@v2
