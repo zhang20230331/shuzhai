@@ -27,7 +27,16 @@ def shot(name: str) -> None:
 
 
 def page_ws() -> str:
-    for _ in range(30):
+    """拿到 pid → 反复建立 adb forward 直到 WebView 调试端点可达。
+    注意：CI runner 逐行执行脚本，变量不跨行，因此 pidof/forward 都在这里做；
+    WebView socket 在应用加载后才出现，必须重试。"""
+    pid = subprocess.run(["adb", "shell", "pidof", "com.shuzhai.reader"],
+                         capture_output=True, text=True).stdout.strip().split()[-1]
+    print("app pid:", pid)
+    for _ in range(45):
+        subprocess.run(["adb", "forward", "tcp:9222",
+                        f"localabstract:webview_devtools_remote_{pid}"],
+                       capture_output=True)
         try:
             with urllib.request.urlopen("http://127.0.0.1:9222/json", timeout=5) as r:
                 pages = json.load(r)

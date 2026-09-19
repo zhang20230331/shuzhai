@@ -161,9 +161,7 @@ jobs:
             adb shell am start -n com.shuzhai.reader/.MainActivity
             sleep 14
             adb exec-out screencap -p > shots/01-launch.png
-            # CDP 驱动 WebView 走完 书城导入→阅读→听书（不依赖屏幕坐标）
-            PID=$(adb shell pidof com.shuzhai.reader | tr -d '\r')
-            adb forward tcp:9222 localabstract:webview_devtools_remote_$PID
+            # CDP 驱动 WebView 走完 书城导入→阅读→听书（pidof/forward 在脚本内做：runner 逐行执行变量不跨行）
             pip install --quiet websocket-client
             python3 .github/scripts/cdp_smoke.py shots
             # 二次安装验证覆盖安装（同签名新包直接覆盖，无需卸载）
