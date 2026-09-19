@@ -456,6 +456,13 @@ button { font-family: inherit; cursor: pointer; }
   position: sticky; top: 0; background: var(--panel);
 }
 .voice-list .voice-loading { color: var(--muted); font-size: 13px; text-align: center; padding: 12px 4px; word-break: break-all; }
+/* 本机合成偏慢提示条（音色面板内置 tab 顶部） */
+.voice-slowwarn {
+  background: var(--accent-soft); border-radius: 10px;
+  padding: 10px 12px; font-size: 12px; line-height: 1.7;
+  margin: 8px 0 4px; color: var(--fg);
+}
+.voice-slowwarn b { color: var(--accent); cursor: pointer; }
 .voice-retry {
   display: block; margin: 8px auto 4px;
   border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent);

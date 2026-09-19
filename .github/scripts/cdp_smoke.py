@@ -94,8 +94,23 @@ st = ev("JSON.stringify({playing: window.__sz.state.playing, mode: window.__sz.s
 print("听书状态:", st)
 state = json.loads(st)
 
+# 降级路径断言（PM 决策）：手动锁 builtin + 注入慢速 → 必须自动切系统语音
+ev("window.__sz.prefs.voiceMode = 'builtin'")
+ev("window.__szForceSlow = true")
+ev("window.__sz.playFrom(window.__sz.state.cur.ch, window.__sz.state.cur.p || 0)")
+time.sleep(12)
+st2 = ev("JSON.stringify({mode: window.__sz.state.mode, playing: window.__sz.state.playing,"
+         " slow: window.__sz.prefs.slowBuiltin})")
+print("降级状态:", st2)
+state2 = json.loads(st2)
+# 诊断信息可生成
+diag = ev("buildDiagnosticsText()") or ""
+print("诊断摘要:", diag.splitlines()[0][:60] if diag else "EMPTY")
+
 ws.close()
 
-ok = bool(book) and bool(chapter) and state.get("playing") is True
+ok = (bool(book) and bool(chapter) and state.get("playing") is True
+      and state2.get("mode") == "system" and state2.get("playing") is True
+      and state2.get("slow") is True and len(diag) > 100)
 print("SMOKE", "OK" if ok else "FAILED")
 sys.exit(0 if ok else 1)

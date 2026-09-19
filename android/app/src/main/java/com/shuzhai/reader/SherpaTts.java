@@ -76,6 +76,9 @@ public final class SherpaTts {
     /** 本机合成速度滚动统计（isSlowSynth 依据） */
     private float rtfAvg = 0f;
     private int rtfCount = 0;
+    private float rtfPrefetchAvg = 0f;
+    private int rtfPrefetchCount = 0;
+    private int cacheHits = 0, cacheMisses = 0;
 
     /** 预合成请求队列（容量 8，满则丢弃；仅预合成引擎消费） */
     private final java.util.concurrent.BlockingQueue<PendingPrefetch> prefetchQueue =
@@ -254,8 +257,15 @@ public final class SherpaTts {
                 GeneratedAudio audio = prefetchTts.generate(p.text, p.sid, p.speed);
                 writeFloatFile(f, audio.getSamples());
                 trimCache();
+                long elapsed = SystemClock.elapsedRealtime() - t0;
+                float audioSec = audio.getSamples().length / (float) sampleRate;
+                if (audioSec > 0.1f) {
+                    float rtf = elapsed / 1000f / audioSec;
+                    rtfPrefetchAvg = rtfPrefetchCount == 0 ? rtf : (rtfPrefetchAvg * 0.6f + rtf * 0.4f);
+                    if (rtfPrefetchCount < 99) rtfPrefetchCount++;
+                }
                 android.util.Log.d(TAG, "prefetch done: " + p.text.length() + "ch in "
-                        + (SystemClock.elapsedRealtime() - t0) + "ms");
+                        + elapsed + "ms");
             } catch (Throwable t) {
                 android.util.Log.w(TAG, "prefetch failed: " + safeMsg(t));
                 try { Thread.sleep(300); } catch (InterruptedException ie) { return; }
@@ -331,14 +341,18 @@ public final class SherpaTts {
                 android.util.Log.d(TAG, "speak start: len=" + text.length());
                 File cached = cacheFile(text, sid, speed);
                 if (cached.isFile()) {
+                    cacheHits++;
                     job.playCached(cached);
-                } else if (prefetchTts != null) {
-                    // 双引擎：整句合成完再播（绝不边合边播出杂音）。
-                    // 稳态下句子已被预合成引擎备好走缓存，此路径只在冷启动/跳句时出现
-                    job.synthThenPlay(text, sid, speed);
                 } else {
-                    // 单引擎（低内存设备）：只能流式；RTF 过慢时由网页侧自动降级系统 TTS
-                    job.run(text, sid, speed);
+                    cacheMisses++;
+                    if (prefetchTts != null) {
+                        // 双引擎：整句合成完再播（绝不边合边播出杂音）。
+                        // 稳态下句子已被预合成引擎备好走缓存，此路径只在冷启动/跳句时出现
+                        job.synthThenPlay(text, sid, speed);
+                    } else {
+                        // 单引擎（低内存设备）：只能流式；RTF 过慢时由网页侧自动降级系统 TTS
+                        job.run(text, sid, speed);
+                    }
                 }
                 if (!job.stopped) fire("done", null);
             } catch (Throwable t) {
@@ -354,10 +368,47 @@ public final class SherpaTts {
         prefetchQueue.offer(new PendingPrefetch(text, sid, speed)); // 队列满=预合成跟不上，丢弃
     }
 
-    /** 本机合成是否偏慢（最近整句合成的 RTF 滚动均值 > 1.25，至少测 3 句） */
+    /** 本机合成是否偏慢：播放路径 RTF>1.25（≥3 句），或双引擎稳态下预合成 RTF>1.5（追不上播放） */
     @android.webkit.JavascriptInterface
     public boolean isSlowSynth() {
-        return rtfCount >= 3 && rtfAvg > 1.25f;
+        if (rtfCount >= 3 && rtfAvg > 1.25f) return true;
+        if (cacheHits > 10 && rtfPrefetchCount >= 3 && rtfPrefetchAvg > 1.5f) return true;
+        return false;
+    }
+
+    /** 诊断数据（JSON）：设备信息 + 引擎状态 + 合成速度 + 缓存命中，供网页诊断面板展示/复制 */
+    @android.webkit.JavascriptInterface
+    public String getDiagnostics() {
+        android.app.ActivityManager am =
+                (android.app.ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        long ram = 0;
+        if (am != null) {
+            android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+            am.getMemoryInfo(mi);
+            ram = mi.totalMem;
+        }
+        File[] files = ttsCache.listFiles((d, n) -> n.endsWith(".f32"));
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\"model\":\"").append(jsonEsc(android.os.Build.MODEL)).append('"');
+        sb.append(",\"brand\":\"").append(jsonEsc(android.os.Build.BRAND)).append('"');
+        sb.append(",\"release\":\"").append(jsonEsc(android.os.Build.VERSION.RELEASE)).append('"');
+        sb.append(",\"ramGB\":").append(String.format("%.1f", ram / 1073741824.0));
+        sb.append(",\"cores\":").append(Runtime.getRuntime().availableProcessors());
+        sb.append(",\"ready\":").append(ready);
+        sb.append(",\"prefetchEngine\":").append(prefetchTts != null);
+        sb.append(",\"rtfAvg\":").append(rtfCount > 0 ? String.format("%.2f", rtfAvg) : "null");
+        sb.append(",\"rtfCount\":").append(rtfCount);
+        sb.append(",\"rtfPrefetchAvg\":").append(rtfPrefetchCount > 0 ? String.format("%.2f", rtfPrefetchAvg) : "null");
+        sb.append(",\"rtfPrefetchCount\":").append(rtfPrefetchCount);
+        sb.append(",\"cacheHits\":").append(cacheHits);
+        sb.append(",\"cacheMisses\":").append(cacheMisses);
+        sb.append(",\"cacheFiles\":").append(files == null ? 0 : files.length);
+        sb.append("}");
+        return sb.toString();
+    }
+
+    private static String jsonEsc(String s) {
+        return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     /** 供低内存设备/测试手动启用预合成引擎（正常情况按内存自动决定）。

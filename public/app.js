@@ -71,6 +71,12 @@ const prefs = {
   get tocDesc() { return localStorage.getItem("sz_toc_desc") === "1"; },
   set tocDesc(v) { localStorage.setItem("sz_toc_desc", v ? "1" : "0"); },
   // 豆包同源音色（火山引擎 TTS）：用户在火山引擎控制台开通后填入，免费额度可用
+  // 本机合成过慢已被自动降级（持久化，避免每次进 App 重踩 15 秒卡顿）；
+  // 用户在音色面板确认「仍要使用内置」时写 builtinForce，此后不再自动降级（知情选择）
+  get slowBuiltin() { return localStorage.getItem("sz_slow_builtin") === "1"; },
+  set slowBuiltin(v) { localStorage.setItem("sz_slow_builtin", v ? "1" : "0"); },
+  get builtinForce() { return localStorage.getItem("sz_builtin_force") === "1"; },
+  set builtinForce(v) { localStorage.setItem("sz_builtin_force", v ? "1" : "0"); },
   get volcanoAppId() { return localStorage.getItem("sz_vt_appid") || ""; },
   set volcanoAppId(v) { localStorage.setItem("sz_vt_appid", (v || "").trim()); },
   get volcanoToken() { return localStorage.getItem("sz_vt_token") || ""; },
@@ -81,10 +87,12 @@ const prefs = {
 
 /* ---------------- 工具 ---------------- */
 let toastTimer = null;
-function toast(msg, ms = 2000) {
+function toast(msg, ms = 2000, action) {
   const t = $("#toast");
   t.textContent = msg;
   t.classList.remove("hidden");
+  t.style.pointerEvents = action ? "auto" : "none";
+  t.onclick = action ? () => { t.classList.add("hidden"); action(); } : null;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.add("hidden"), ms);
 }
@@ -1078,7 +1086,13 @@ function renderVoiceTab() {
 function selectVoice(mode, id, btnEl) {
   if (mode === "online") prefs.voice = id;
   else if (mode === "system") prefs.nativeVoice = id;
-  else if (mode === "builtin") { prefs.builtinVoice = id; S.slowBuiltin = false; } // 用户明确选回内置：清除自动降级
+  else if (mode === "builtin") {
+    // 本机合成偏慢已记录：确认后才能强制使用内置（知情选择，此后不再自动降级）
+    if (prefs.slowBuiltin && !prefs.builtinForce
+        && !confirm("本机合成速度偏慢，内置音色朗读可能有停顿。仍要使用内置音色吗？\n\n（取消可改选系统语音，或在音色面板接入豆包音色获得流畅高音质）")) return;
+    if (prefs.slowBuiltin) prefs.builtinForce = true;
+    prefs.builtinVoice = id;
+  }
   else if (mode === "volcano") prefs.volcanoVoice = id;
   prefs.voiceMode = mode; // 显式选择后不再自动切换来源
   S.mode = mode;
@@ -1121,6 +1135,18 @@ function renderBuiltinVoices() {
     return;
   }
   grid.innerHTML = "";
+  // 本机合成偏慢：tab 顶部提示条（试听/播放几句后有 RTF 数据才显示，不基于猜测打扰）
+  if (prefs.slowBuiltin && !prefs.builtinForce) {
+    const warn = document.createElement("div");
+    warn.className = "voice-slowwarn";
+    warn.innerHTML = `本机合成速度偏慢，内置音色朗读可能有停顿。建议改用 <b data-act="sys">系统语音</b>，或 <b data-act="volc">接入豆包音色</b>（流畅 + 高音质）。`;
+    grid.appendChild(warn);
+    warn.querySelector('[data-act="sys"]').addEventListener("click", () => {
+      selectVoice("system", prefs.nativeVoice || "", null);
+      renderVoiceTab();
+    });
+    warn.querySelector('[data-act="volc"]').addEventListener("click", openVolcanoSheet);
+  }
   BUILTIN_GROUPS.forEach((g) => {
     const h = document.createElement("div");
     h.className = "voice-group";
@@ -1142,6 +1168,12 @@ function renderBuiltinVoices() {
       grid.appendChild(b);
     }
   });
+  // 诊断入口：一次点击产出可回传的完整诊断信息（PM 决策：信息必须能离开手机）
+  const diag = document.createElement("button");
+  diag.className = "voice-retry";
+  diag.textContent = "听书不流畅？点此复制诊断信息";
+  diag.addEventListener("click", copyDiagnostics);
+  grid.appendChild(diag);
   grid.dataset.loaded = "1";
 }
 
@@ -1502,7 +1534,13 @@ const volcanoConfigured = () => !!(prefs.volcanoAppId && prefs.volcanoToken);
 async function resolveVoiceMode() {
   let m = prefs.voiceMode;
   if (m === "builtin" && !androidTts()) m = "";
-  if (m === "builtin" && S.slowBuiltin) m = ""; // 本机合成过慢：自动模式下避开内置
+  // 本机合成过慢已记录：即使用户显式选了内置也让位（用户可在音色面板确认强制使用）
+  if (m === "builtin" && prefs.slowBuiltin && !prefs.builtinForce) m = "";
+  // 显式内置但引擎未就绪：等待就绪，而不是让 speak 连续失败被误认为"卡死"
+  if (m === "builtin" && androidTts() && builtinState !== "ready") {
+    startBuiltinInit();
+    if (!(await waitBuiltinReady(15000))) m = "";
+  }
   if (m === "system" && !nativeTTS()) m = "";
   if (m === "volcano" && !volcanoConfigured()) m = "";
   if (m === "online" && LOCAL_MODE) {
@@ -1511,8 +1549,8 @@ async function resolveVoiceMode() {
   }
   if (m) return m;
   // 自动：优先内置离线语音（随 App 打包，任何手机可用，不依赖网络）；
-  // 本机合成过慢（RTF>1.25）时跳过内置，避免断续卡顿
-  if (androidTts() && !S.slowBuiltin) {
+  // 本机合成过慢（RTF>1.25，含手动选内置的用户）时跳过内置，避免断续卡顿
+  if (androidTts() && !(prefs.slowBuiltin && !prefs.builtinForce)) {
     if (builtinState === "ready") return "builtin";
     if (builtinState === "none") startBuiltinInit();
     if (builtinState !== "failed") {
@@ -1671,11 +1709,12 @@ async function sentenceChain(ch, p, s, token, speakSeg, failTip) {
       if (e && e.stopped) return; // 被 stop()/pause() 打断：安静退出
       lastErr = (e && e.message) || String(e);
     }
-    // 本机合成持续偏慢（自动模式下）：切系统语音保证流畅；用户可随时在音色面板选回内置
-    if (S.mode === "builtin" && !S.slowBuiltin && !prefs.voiceMode
-        && androidTts()?.isSlowSynth?.()) {
-      S.slowBuiltin = true;
-      toast("本机合成速度偏慢，已自动切换系统语音（更流畅）；高音质可在音色面板接入豆包", 4200);
+    // 本机合成持续偏慢：切换到可流畅播放的链路。覆盖所有用户（含手动选内置的）——
+    // 用户选的是音色，不是卡顿；知情确认后（builtinForce）才保留内置
+    if (S.mode === "builtin" && !prefs.slowBuiltin && !prefs.builtinForce
+        && (window.__szForceSlow === true || androidTts()?.isSlowSynth?.() === true)) {
+      prefs.slowBuiltin = true;
+      toast("本机合成速度跟不上播放，已改用系统语音保证连贯。想继续用内置音色：音色面板 → 内置 → 「仍要使用」；想要流畅高音质可接入豆包音色", 6000, openVoiceSheet);
       return playFrom(S.cur.ch, S.cur.p, S.cur.s);
     }
     if (token !== S.playToken) return;
@@ -1947,27 +1986,58 @@ document.querySelector(".topbar h1 .ver").addEventListener("click", () => {
   if (verTaps >= 5) { verTaps = 0; showDiagnostics(); }
 });
 async function showDiagnostics() {
-  const nv = await nativeVoices();
-  const rt = document.querySelector(".reader-top");
-  const cs = rt ? getComputedStyle(rt) : null;
-  const info = [
-    "版本: " + (document.querySelector(".topbar h1 .ver")?.textContent || "?"),
-    "WebView: " + navigator.userAgent.slice(-70),
-    "阅读主题: " + (document.getElementById("reader").dataset.theme || "未设置"),
-    "顶栏背景: " + (cs ? cs.backgroundColor : "元素缺失"),
-    "顶栏层叠: z=" + (cs ? cs.zIndex : "?"),
-    "本地模式: " + LOCAL_MODE + " · 在线: " + serverAlive,
-    "内置语音: " + (androidTts() ? builtinState + (builtinState === "failed" ? "（" + builtinErr + "）" : "") + " · 音色sid: " + prefs.builtinVoice : "桥不存在（非本APK或老版本）"),
-    "音色来源: " + (prefs.voiceMode || "自动") + " · 当前链路: " + (S.mode || "-"),
-    "TTS插件: " + (nativeTTS() ? "有" : "无") +
-      (nativeTTS() ? " · 方法: " + (nativeTTS().getSupportedVoices ? "getSupportedVoices" : (nativeTTS().getVoices ? "getVoices" : "无音色方法")) : ""),
-    "系统音色数: " + (nv ? nv.length : "未获取"),
-    "音色列表: " + (nv && nv.length ? nv.slice(0, 3).map(voiceLabel).join(", ") + "…" : (nv ? "空" : "-")),
-    "通知权限提示: 锁屏卡片需在系统设置允许本应用通知",
-    "悬浮球位置: " + (document.getElementById("listenBall") ? getComputedStyle(document.getElementById("listenBall")).bottom + " z" + getComputedStyle(document.getElementById("listenBall")).zIndex : "-"),
-  ].join("\n");
-  $("#errMsg").textContent = info;
+  const text = await buildDiagnosticsText();
+  $("#errMsg").textContent = text;
   $("#errPanel").classList.remove("hidden");
+  // 复制出口（clipboard 不可用时用户长按文本手动复制）
+  if (!document.getElementById("diagCopyBtn")) {
+    const btn = document.createElement("button");
+    btn.id = "diagCopyBtn";
+    btn.className = "primary-btn";
+    btn.style.cssText = "width:100%;margin-top:12px";
+    btn.textContent = "复制诊断信息";
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText($("#errMsg").textContent);
+        btn.textContent = "已复制 ✓";
+      } catch {
+        btn.textContent = "复制失败：长按上方文本手动复制";
+      }
+    });
+    $("#errMsg").insertAdjacentElement("afterend", btn);
+  }
+}
+
+/* ---------------- 诊断（PM 决策：让用户一次操作产出工程师可归因的信息） ---------------- */
+async function buildDiagnosticsText() {
+  let d = {};
+  try { d = JSON.parse(androidTts()?.getDiagnostics?.() || "{}"); } catch {}
+  const nv = await nativeVoices();
+  const slow = d.rtfAvg && d.rtfAvg > 1.25;
+  const summary = d.rtfAvg
+    ? `本机（${d.brand || "?"} ${d.model || ""} / ${d.ramGB || "?"}GB / ${d.cores || "?"} 核）合成一句约需播放时长的 ${d.rtfAvg} 倍，${slow ? "属偏慢机型：听书已自动改用系统语音保证连贯；想要流畅高音质可接入豆包音色（火山引擎免费额度）。" : "速度正常，可流畅使用内置音色。"}`
+    : `本机（${d.brand || "?"} ${d.model || ""} / ${d.ramGB || "?"}GB）合成速度数据采集中：播放几句后再看。`;
+  return [
+    summary,
+    "== 设备 ==",
+    `机型: ${d.brand || "?"} ${d.model || "?"} · Android ${d.release || "?"} · RAM ${d.ramGB || "?"}GB · ${d.cores || "?"} 核`,
+    "== 听书引擎 ==",
+    `内置引擎: ${d.ready ? "就绪" : "未就绪"} · 预合成引擎: ${d.prefetchEngine ? "启用" : "未启用(低内存)"}`,
+    `播放 RTF: ${d.rtfAvg || "-"}（${d.rtfCount || 0} 句）· 预合成 RTF: ${d.rtfPrefetchAvg || "-"}（${d.rtfPrefetchCount || 0} 句）`,
+    `缓存: 命中 ${d.cacheHits ?? 0} / 未命中 ${d.cacheMisses ?? 0} · 缓存文件 ${d.cacheFiles ?? 0}`,
+    "== 会话 ==",
+    `版本: v3.2 · 链路: ${S.mode || "-"} · 音色来源: ${prefs.voiceMode || "自动"} · 语速 ${(prefs.rate / 100).toFixed(1)}x · 系统音色数: ${nv ? nv.length : "未获取"} · 电脑在线: ${serverAlive}`,
+  ].join("\n");
+}
+
+async function copyDiagnostics() {
+  const text = await buildDiagnosticsText();
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("诊断信息已复制，粘贴发给开发者即可", 3600);
+  } catch {
+    showBookError(text + "\n\n（复制失败：长按全选上方文本，手动复制发送）");
+  }
 }
 
 // 调试/自动化测试钩子
