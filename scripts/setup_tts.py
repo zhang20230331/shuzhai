@@ -154,8 +154,17 @@ def ensure_onnx() -> None:
     try:
         import onnx  # noqa: F401
     except ImportError:
+        # CI 的 Ubuntu 24.04 python 为 externally-managed，依次尝试多种安装方式
         print("[依赖] 安装 onnx（模型元数据改写需要）")
-        subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "onnx"], check=True)
+        base = [sys.executable, "-m", "pip", "install", "--quiet", "onnx"]
+        for extra in ([], ["--break-system-packages"], ["--user"]):
+            try:
+                subprocess.run(base + extra, check=True)
+                import onnx  # noqa: F401
+                return
+            except (subprocess.CalledProcessError, ImportError):
+                continue
+        raise SystemExit("无法自动安装 onnx，请先手动执行: pip install onnx")
 
 
 def subset_assets() -> None:
