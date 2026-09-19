@@ -195,6 +195,25 @@ async function route(req, res) {
 
   if (p === "/api/voices") return json(res, 200, VOICES);
 
+  // 火山引擎 TTS 代理（浏览器模式下豆包音色走这里，规避 CORS；App 内直连官方接口）
+  if (p === "/api/vtts" && m === "POST") {
+    const body = JSON.parse((await readBody(req, 65536)).toString("utf8"));
+    if (!body || !body.app || !body.app.appid || !body.app.token || !body.request || !body.request.text)
+      return json(res, 400, { error: "volcano tts 请求结构不完整" });
+    try {
+      const r = await fetch("https://openspeech.bytedance.com/api/v1/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer;${body.app.token}` },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(30000),
+      });
+      const data = await r.json();
+      return json(res, r.status, data);
+    } catch (e) {
+      return json(res, 502, { error: "火山引擎连接失败", detail: e.message });
+    }
+  }
+
   if (p === "/api/books" && m === "GET") return json(res, 200, listBooks());
 
   if (p === "/api/books" && m === "POST") {

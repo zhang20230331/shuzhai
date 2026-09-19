@@ -10,14 +10,14 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=26">
+<link rel="stylesheet" href="style.css?v=27">
 </head>
 <body>
 
 <!-- 书架 -->
 <div id="shelf" class="page">
   <header class="topbar">
-    <h1>书斋 <span class="ver">v3.0</span><span id="readStat" class="read-stat"></span></h1>
+    <h1>书斋 <span class="ver">v3.1</span><span id="readStat" class="read-stat"></span></h1>
     <div class="topbar-actions">
       <button id="btnStore" class="ghost-btn">名著书城</button>
       <button id="btnImportUrl" class="ghost-btn">链接导入</button>
@@ -27,6 +27,17 @@
   <div id="shelfSearchRow" class="shelf-search hidden">
     <input id="shelfSearch" type="search" placeholder="搜索书名" autocomplete="off">
   </div>
+  <!-- 继续阅读（番茄式：最近在读的书置顶） -->
+  <section id="heroCard" class="hero hidden" role="button" tabindex="0">
+    <div class="hero-cover" id="heroCover"></div>
+    <div class="hero-info">
+      <div class="hero-kicker">继续阅读</div>
+      <div class="hero-name" id="heroName"></div>
+      <div class="hero-meta" id="heroMeta"></div>
+      <div class="hero-progress"><i id="heroProgress"></i></div>
+    </div>
+    <button class="hero-btn" id="heroBtn">继续读</button>
+  </section>
   <main id="bookGrid" class="grid"></main>
   <div id="shelfEmpty" class="empty hidden">
     <div class="empty-icon">📖</div>
@@ -92,10 +103,10 @@
     <svg viewBox="0 0 24 24" class="svg-ic"><path d="M12 3a9 9 0 0 0-9 9v6a3 3 0 0 0 3 3h2a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H5v-.1a7 7 0 0 1 14 0V12h-3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h3a3 3 0 0 0 3-3v-6a9 9 0 0 0-9-9z"/></svg>
   </button>
 
-  <!-- 听书操作面板（大布局，从底部弹出；✕/点空白仅收起，不打断听书） -->
+  <!-- 听书操作面板（番茄式播放器：章内进度 + 大控件 + 功能行） -->
   <div id="playerMask" class="mask player-mask hidden"></div>
   <div id="playerSheet" class="sheet hidden">
-    <div class="player-grabber"></div>
+    <div class="grabber"></div>
     <div class="player-head">
       <div class="player-title">
         <div class="player-chapter" id="playerChapter"></div>
@@ -104,6 +115,10 @@
       <button id="btnClosePlayer" class="pbtn" title="收起面板">
         <svg viewBox="0 0 24 24" class="svg-ic"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>
       </button>
+    </div>
+    <div class="player-progress">
+      <input type="range" id="paraSlider" min="1" max="1" value="1" step="1">
+      <div class="pp-labels"><span id="paraPos">本章 1/1 句</span><span id="paraMode"></span></div>
     </div>
     <div class="player-controls">
       <button id="btnPrevPara" class="pbtn big" title="上一句">
@@ -185,52 +200,77 @@
     <div id="tocList"></div>
   </aside>
 
-  <!-- 设置面板（番茄式：字号/行距/字距/字体/翻页方式/主题/亮度/自动阅读） -->
+  <!-- 设置面板（番茄式：卡片分组 + 字体预览卡 + 背景卡 + 胶囊选项） -->
   <div id="settingsSheet" class="sheet hidden">
-    <div class="sheet-row"><span>字号</span>
-      <div class="stepper"><button id="fontMinus">A−</button><span id="fontLabel"></span><button id="fontPlus">A＋</button></div>
-    </div>
-    <div class="sheet-row"><span>行距</span>
-      <div class="stepper"><button id="lhMinus">−</button><span id="lhLabel"></span><button id="lhPlus">＋</button></div>
-    </div>
-    <div class="sheet-row"><span>字距</span>
-      <div class="stepper"><button id="lsMinus">−</button><span id="lsLabel"></span><button id="lsPlus">＋</button></div>
-    </div>
-    <div class="sheet-row"><span>字体</span>
-      <div class="timer-chips" id="fontChips">
-        <button data-ff="sans">默认</button>
-        <button data-ff="song">宋体</button>
-        <button data-ff="kai">楷体</button>
+    <div class="grabber"></div>
+    <div class="set-title">阅读设置</div>
+    <div class="set-card">
+      <div class="set-row"><span class="set-label">字号</span>
+        <div class="stepper"><button id="fontMinus">A−</button><span id="fontLabel"></span><button id="fontPlus">A＋</button></div>
+      </div>
+      <div class="set-row"><span class="set-label">行距</span>
+        <div class="stepper"><button id="lhMinus">−</button><span id="lhLabel"></span><button id="lhPlus">＋</button></div>
+      </div>
+      <div class="set-row"><span class="set-label">字距</span>
+        <div class="stepper"><button id="lsMinus">−</button><span id="lsLabel"></span><button id="lsPlus">＋</button></div>
       </div>
     </div>
-    <div class="sheet-row"><span>翻页方式</span>
-      <div class="timer-chips" id="flipChips">
-        <button data-flip="cover">覆盖</button>
-        <button data-flip="slide">平移</button>
-        <button data-flip="none">无</button>
-        <button data-flip="scroll">上下滚动</button>
+    <div class="set-card ff-cards" id="fontChips">
+      <button class="ff-card" data-ff="sans"><i class="ff-demo">永</i><span>默认</span></button>
+      <button class="ff-card" data-ff="song"><i class="ff-demo ff-song">永</i><span>宋体</span></button>
+      <button class="ff-card" data-ff="kai"><i class="ff-demo ff-kai">永</i><span>楷体</span></button>
+    </div>
+    <div class="set-card themes-row">
+      <button class="theme-card" data-theme="white"><i style="--c:#ffffff"></i><span>纯白</span></button>
+      <button class="theme-card" data-theme="sepia"><i style="--c:#f5efdc"></i><span>羊皮纸</span></button>
+      <button class="theme-card" data-theme="green"><i style="--c:#cde8d2"></i><span>护眼</span></button>
+      <button class="theme-card" data-theme="dark"><i style="--c:#121212"></i><span>夜间</span></button>
+    </div>
+    <div class="set-card">
+      <div class="set-row"><span class="set-label">翻页方式</span>
+        <div class="timer-chips" id="flipChips">
+          <button data-flip="cover">覆盖</button>
+          <button data-flip="slide">平移</button>
+          <button data-flip="none">无</button>
+          <button data-flip="scroll">上下滚动</button>
+        </div>
+      </div>
+      <div class="set-row dim-row"><span class="set-label">亮度</span>
+        <div class="dim-ctrl">
+          <input type="range" id="dimRange" min="20" max="100" step="5" value="100">
+          <span id="dimLabel">100%</span>
+        </div>
+      </div>
+      <div class="set-row"><span class="set-label">自动阅读</span>
+        <div class="stepper">
+          <button id="autoToggle" class="auto-toggle">关</button>
+          <button id="autoMinus">−</button><span id="autoLabel">5</span><button id="autoPlus">＋</button>
+        </div>
       </div>
     </div>
-    <div class="sheet-row"><span>主题</span>
-      <div class="themes">
-        <button class="theme-dot" data-theme="white" style="--bg:#ffffff;--fg:#1a1a1a"></button>
-        <button class="theme-dot" data-theme="sepia" style="--bg:#f5efdc;--fg:#3b2f1e"></button>
-        <button class="theme-dot" data-theme="green" style="--bg:#cde8d2;--fg:#1d3324"></button>
-        <button class="theme-dot" data-theme="dark" style="--bg:#121212;--fg:#a8a8a8"></button>
-      </div>
+  </div>
+
+  <!-- 豆包音色接入配置（火山引擎 TTS） -->
+  <div id="volcanoMask" class="mask hidden"></div>
+  <div id="volcanoSheet" class="sheet hidden">
+    <div class="grabber"></div>
+    <div class="sheet-head">豆包同源音色 · 火山引擎
+      <button id="volcClose" class="pbtn small" title="关闭">
+        <svg viewBox="0 0 24 24" class="svg-ic"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>
+      </button>
     </div>
-    <div class="sheet-row dim-row"><span>亮度</span>
-      <div class="dim-ctrl">
-        <input type="range" id="dimRange" min="20" max="100" step="5" value="100">
-        <span id="dimLabel">100%</span>
-      </div>
+    <div class="volc-guide">
+      豆包的朗读音色由火山引擎语音合成提供。接入只需两步：<br>
+      ① 打开 <b>console.volcengine.com</b> → 搜「语音合成」→ 开通服务（有免费额度）→ 应用管理里创建应用，拿到 <b>AppID</b> 和 <b>Access Token</b><br>
+      ② 填入下面两项保存，音色弹窗即出现「豆包」分组，随时随地高音质听书
     </div>
-    <div class="sheet-row"><span>自动阅读</span>
-      <div class="stepper">
-        <button id="autoToggle" class="auto-toggle">关</button>
-        <button id="autoMinus">−</button><span id="autoLabel">5</span><button id="autoPlus">＋</button>
-      </div>
+    <div class="sheet-row"><span>AppID</span>
+      <input id="volcAppIdInput" class="volc-input" placeholder="火山引擎应用 AppID" autocomplete="off">
     </div>
+    <div class="sheet-row"><span>Access Token</span>
+      <input id="volcTokenInput" class="volc-input" type="password" placeholder="火山引擎 Access Token" autocomplete="off">
+    </div>
+    <button id="volcSave" class="primary-btn volc-save">保存并启用豆包音色</button>
   </div>
 
   <div id="flipLoading" class="hidden"><div class="spin"></div></div>
@@ -254,7 +294,7 @@
     </div>
   </div>
 <audio id="audio" preload="auto"></audio>
-<script src="local.js?v=26"></script>
-<script src="app.js?v=26"></script>
+<script src="local.js?v=27"></script>
+<script src="app.js?v=27"></script>
 </body>
 </html>

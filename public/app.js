@@ -70,6 +70,13 @@ const prefs = {
   // 目录排序：false 正序 / true 倒序
   get tocDesc() { return localStorage.getItem("sz_toc_desc") === "1"; },
   set tocDesc(v) { localStorage.setItem("sz_toc_desc", v ? "1" : "0"); },
+  // 豆包同源音色（火山引擎 TTS）：用户在火山引擎控制台开通后填入，免费额度可用
+  get volcanoAppId() { return localStorage.getItem("sz_vt_appid") || ""; },
+  set volcanoAppId(v) { localStorage.setItem("sz_vt_appid", (v || "").trim()); },
+  get volcanoToken() { return localStorage.getItem("sz_vt_token") || ""; },
+  set volcanoToken(v) { localStorage.setItem("sz_vt_token", (v || "").trim()); },
+  get volcanoVoice() { return localStorage.getItem("sz_vt_voice") || "BV700_streaming"; },
+  set volcanoVoice(v) { localStorage.setItem("sz_vt_voice", v || "BV700_streaming"); },
 };
 
 /* ---------------- 工具 ---------------- */
@@ -200,9 +207,28 @@ const splitSegs = (text) => (text.match(SEG_SPLIT) || [text]).filter(Boolean);
 const showLoading = (v) => $("#flipLoading").classList.toggle("hidden", !v);
 
 /* ---------------- 书架 ---------------- */
+/* 继续阅读卡（番茄式：最近在读置顶，一键回到上次位置） */
+function renderHero(books) {
+  const hero = $("#heroCard");
+  if (!books.length) { hero.classList.add("hidden"); return; }
+  const b = books.find((x) => x.progress) || books[0];
+  const hue = coverHue(b.id);
+  const pct = b.progress ? Math.min(99, Math.round(((b.progress.chapter + 1) / b.chapterCount) * 100)) : 0;
+  $("#heroName").textContent = b.name;
+  $("#heroMeta").textContent = `${b.chapterCount} 章` +
+    (b.progress ? ` · 第 ${Math.min(b.progress.chapter + 1, b.chapterCount)} 章 · 已读 ${pct}%` : " · 从头开始");
+  $("#heroProgress").style.width = pct + "%";
+  const cov = $("#heroCover");
+  cov.style.background = `linear-gradient(160deg,hsl(${hue},58%,52%),hsl(${(hue + 45) % 360},58%,40%))`;
+  cov.textContent = b.name.slice(0, 4);
+  hero.classList.remove("hidden");
+  hero.onclick = () => openBook(b.id);
+}
+
 let shelfKw = "";
 async function loadShelf() {
   const all = await Store.listBooks();
+  renderHero(all);
   const books = shelfKw
     ? all.filter((b) => String(b.name).toLowerCase().includes(shelfKw))
     : all;
@@ -600,6 +626,7 @@ function toggleMenu(open) {
     closeVoice();
     closeRateSheet();
     closeTimerSheet();
+    closeVolcanoSheet();
   }
 }
 
@@ -757,6 +784,25 @@ $("#pageSlider").addEventListener("input", (e) => {
   }
   goToPage(+e.target.value - 1);
 });
+/* 播放面板：拖动跳句（松手生效，避免与播放推进打架） */
+$("#paraSlider").addEventListener("change", (e) => {
+  if (!S.chapter) return;
+  const target = +e.target.value - 1;
+  let acc = 0;
+  for (let pi = 0; pi < S.chapter.segs.length; pi++) {
+    const segs = S.chapter.segs[pi];
+    if (target < acc + segs.length) {
+      if (!S.playing) resumeListeningElsewhere(pi, target - acc);
+      else playFrom(S.cur.ch, pi, target - acc);
+      return;
+    }
+    acc += segs.length;
+  }
+});
+function resumeListeningElsewhere(p, s) {
+  S.pausedPos = null;
+  playFrom(S.cur.ch, p, s);
+}
 
 /* 目录 / 设置 / 音色弹窗 */
 function closeToc() { $("#toc").classList.add("hidden"); $("#tocMask").classList.add("hidden"); }
@@ -823,7 +869,7 @@ function applyReaderPrefs(relayout = true) {
   document.body.dataset.theme = prefs.theme === "dark" ? "dark" : "";
   $("#reader").dataset.theme = prefs.theme; // 阅读主题变量挂在 #reader 上：操作栏/悬浮标识/正文全部继承
   viewport.dataset.theme = prefs.theme;
-  document.querySelectorAll(".theme-dot").forEach((d) => d.classList.toggle("active", d.dataset.theme === prefs.theme));
+  document.querySelectorAll(".theme-card").forEach((d) => d.classList.toggle("active", d.dataset.theme === prefs.theme));
   $("#btnNight span:last-child").textContent = prefs.theme === "dark" ? "白天" : "夜间";
   syncSystemBars();
   if (relayout && S.chapter) {
@@ -855,7 +901,7 @@ $("#flipChips").addEventListener("click", (e) => {
   autoStop(true);
   applyReaderPrefs();
 });
-document.querySelectorAll(".theme-dot").forEach((d) => d.addEventListener("click", () => { prefs.theme = d.dataset.theme; applyReaderPrefs(false); }));
+document.querySelectorAll(".theme-card").forEach((d) => d.addEventListener("click", () => { prefs.theme = d.dataset.theme; applyReaderPrefs(false); }));
 
 /* ---------------- 自动阅读（番茄式）：定时翻页 / 滚动模式匀速下滑 ---------------- */
 let autoTimer = null;
@@ -936,6 +982,56 @@ viewport.addEventListener("scroll", () => {
   saveProgressSoon();
 }, { passive: true });
 
+/* ---------------- 豆包同源音色（火山引擎 TTS） ----------------
+   App 内经 CapacitorHttp 直连官方接口（无 CORS 限制）；
+   浏览器模式经本机服务 /api/vtts 代理转发。需用户在火山引擎控制台开通（有免费额度）。 */
+const VOLC_VOICES = [
+  { id: "BV700_streaming", name: "灿灿 · 活泼女声" },
+  { id: "BV701_streaming", name: "擎苍 · 磁性男声" },
+  { id: "BV001_streaming", name: "通用女声" },
+  { id: "BV002_streaming", name: "通用男声" },
+];
+
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+
+async function volcanoSynthesize(text) {
+  const body = {
+    app: { appid: prefs.volcanoAppId, token: prefs.volcanoToken, cluster: "volcano_tts" },
+    user: { uid: "shuzhai-reader" },
+    audio: { voice_type: prefs.volcanoVoice, encoding: "mp3", speed_ratio: Math.max(0.2, Math.min(3, prefs.rate / 100)) },
+    request: { reqid: crypto.randomUUID ? crypto.randomUUID() : "sz" + Date.now() + Math.random().toString(36).slice(2), text: String(text).slice(0, 1024), operation: "query" },
+  };
+  const url = LOCAL_MODE ? "https://openspeech.bytedance.com/api/v1/tts" : `${SERVER}/api/vtts`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer;" + prefs.volcanoToken },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.data) throw new Error(data.message || `HTTP ${res.status}`);
+  return URL.createObjectURL(new Blob([b64ToBytes(data.data)], { type: "audio/mpeg" }));
+}
+
+async function getVolcanoAudio(ch, p) {
+  const key = `v:${ch}:${p}:${prefs.rate}:${prefs.volcanoVoice}`;
+  if (S.audioCache.has(key)) return S.audioCache.get(key);
+  const text = S.chapter && ch === S.cur.ch ? S.chapter.paras[p] : (S.chapterCache.get(ch) || await Store.getChapter(S.book.id, ch)).paras[p];
+  if (!text) throw new Error("no text");
+  const url = await volcanoSynthesize(text);
+  if (S.audioCache.size > 24) {
+    const first = S.audioCache.keys().next().value;
+    URL.revokeObjectURL(S.audioCache.get(first));
+    S.audioCache.delete(first);
+  }
+  S.audioCache.set(key, url);
+  return url;
+}
+
 /* ---------------- 听书播放器 ---------------- */
 const VOICE_SHORT = { "zh-CN-XiaoxiaoNeural": "晓晓", "zh-CN-XiaoyiNeural": "晓伊", "zh-CN-YunxiNeural": "云希", "zh-CN-YunjianNeural": "云健", "zh-CN-YunxiaNeural": "云夏", "zh-CN-YunyangNeural": "云扬", "zh-CN-YunyeNeural": "云野", "zh-CN-XiaoyouNeural": "晓童", "zh-CN-liaoning-XiaobeiNeural": "晓北", "zh-CN-shaanxi-XiaoniNeural": "晓妮", "zh-HK-HiuMaanNeural": "曉曼", "zh-HK-HiuGaaiNeural": "曉佳", "zh-TW-HsiaoChenNeural": "筱臣", "zh-TW-YunJheNeural": "雲哲" };
 
@@ -975,6 +1071,7 @@ const voiceSheetOpen = () => !$("#voiceSheet").classList.contains("hidden");
 function voiceTabs() {
   const tabs = [];
   if (androidTts()) tabs.push("builtin");   // 内置 Kokoro（随 APK 打包，离线可用）
+  if (volcanoConfigured()) tabs.push("volcano"); // 豆包同源（火山引擎，需已配置 key）
   if (!LOCAL_MODE || serverAlive) tabs.push("online");
   if (nativeTTS()) tabs.push("system");
   return tabs;
@@ -996,7 +1093,7 @@ async function loadVoices() {
     const b = document.createElement("button");
     b.dataset.g = t;
     b.className = t === voiceTab ? "active" : "";
-    b.textContent = t === "builtin" ? "内置 · 离线" : t === "online" ? "在线" : "系统";
+    b.textContent = t === "builtin" ? "内置 · 离线" : t === "volcano" ? "豆包" : t === "online" ? "在线" : "系统";
     b.addEventListener("click", () => { if (voiceTab !== t) { voiceTab = t; loadVoices(); } });
     bar.appendChild(b);
   });
@@ -1006,6 +1103,7 @@ async function loadVoices() {
 
 function renderVoiceTab() {
   if (voiceTab === "builtin") return renderBuiltinVoices();
+  if (voiceTab === "volcano") return renderVolcanoVoices();
   if (voiceTab === "system") return renderSystemVoices();
   return renderOnlineVoices();
 }
@@ -1015,6 +1113,7 @@ function selectVoice(mode, id, btnEl) {
   if (mode === "online") prefs.voice = id;
   else if (mode === "system") prefs.nativeVoice = id;
   else if (mode === "builtin") prefs.builtinVoice = id;
+  else if (mode === "volcano") prefs.volcanoVoice = id;
   prefs.voiceMode = mode; // 显式选择后不再自动切换来源
   S.mode = mode;
   S.audioCache.forEach((u) => URL.revokeObjectURL(u));
@@ -1079,6 +1178,79 @@ function renderBuiltinVoices() {
   });
   grid.dataset.loaded = "1";
 }
+
+/* --- 豆包同源音色清单（火山引擎 voice_type）+ 接入入口 --- */
+function renderVolcanoVoices() {
+  const grid = $("#voiceGrid");
+  $("#voiceHint").textContent = "豆包同源音色 · 火山引擎 TTS · 在线可用";
+  grid.innerHTML = "";
+  VOLC_VOICES.forEach((v) => {
+    const b = document.createElement("button");
+    const on = v.id === prefs.volcanoVoice;
+    b.className = "voice-item" + (on ? " active" : "");
+    b.innerHTML = `<span class="v-name">${esc(v.name)}</span><i class="v-try">试听</i>` + (on ? CHECK_SVG : "");
+    b.addEventListener("click", (e) => {
+      if (e.target.closest(".v-try")) { previewVolcano(v.id); return; }
+      prefs.volcanoVoice = v.id;
+      selectVoice("volcano", v.id, b);
+    });
+    grid.appendChild(b);
+  });
+  const custom = document.createElement("div");
+  custom.className = "volcano-custom";
+  custom.innerHTML = `<input id="volcCustomId" placeholder="填入音色 ID（音色管理里复制）">
+    <button id="volcCustomApply">应用</button>
+    <button id="volcConfigBtn" class="volc-config-link">接入配置</button>`;
+  grid.appendChild(custom);
+  $("#volcCustomApply").addEventListener("click", () => {
+    const id = $("#volcCustomId").value.trim();
+    if (!id) { toast("先填入音色 ID"); return; }
+    prefs.volcanoVoice = id;
+    selectVoice("volcano", id, null);
+    renderVolcanoVoices();
+  });
+  $("#volcConfigBtn").addEventListener("click", openVolcanoSheet);
+  grid.dataset.loaded = "1";
+}
+
+async function previewVolcano(voiceId) {
+  if (S.playing) pauseListening();
+  try {
+    const saveVoice = prefs.volcanoVoice;
+    prefs.volcanoVoice = voiceId;
+    const url = await volcanoSynthesize("你好，这是豆包同源音色试听。");
+    prefs.volcanoVoice = saveVoice;
+    haltAudioEl();
+    audio.src = url;
+    await audio.play();
+  } catch (e) { toast("试听失败：" + (e.message || e), 3200); }
+}
+
+function openVolcanoSheet() {
+  $("#volcAppIdInput").value = prefs.volcanoAppId;
+  $("#volcTokenInput").value = prefs.volcanoToken;
+  $("#volcanoSheet").classList.remove("hidden");
+  $("#volcanoMask").classList.remove("hidden");
+}
+function closeVolcanoSheet() {
+  $("#volcanoSheet").classList.add("hidden");
+  $("#volcanoMask").classList.add("hidden");
+}
+$("#volcanoMask").addEventListener("click", closeVolcanoSheet);
+$("#volcClose").addEventListener("click", closeVolcanoSheet);
+$("#volcSave").addEventListener("click", () => {
+  const appid = $("#volcAppIdInput").value.trim();
+  const token = $("#volcTokenInput").value.trim();
+  if (!appid || !token) { toast("AppID 和 Token 都要填写"); return; }
+  prefs.volcanoAppId = appid;
+  prefs.volcanoToken = token;
+  toast("豆包音色已启用");
+  closeVolcanoSheet();
+  voiceTab = "volcano";
+  loadVoices();
+});
+
+/* --- 豆包音色清单结束 --- */
 
 async function previewBuiltin(sid) {
   if (S.playing) pauseListening(); // 试听不与朗读混流
@@ -1269,9 +1441,29 @@ function updateSegHighlight(p, ratio) {
 function highlightSeg(p, s) {
   track.querySelectorAll(".seg.on").forEach((el) => el.classList.remove("on"));
   const el = track.querySelector(`.seg[data-p="${p}"][data-s="${s}"]`);
+  updateParaSlider();
   if (!el) return;
   if (S.follow !== false) flipToElement(el);
   el.classList.add("on");
+}
+
+/* 播放面板：本章句进度 */
+function updateParaSlider() {
+  if (!S.chapter) return;
+  const slider = $("#paraSlider");
+  if (!slider) return;
+  let idx = 0, total = 0;
+  S.chapter.segs.forEach((segs, pi) => {
+    segs.forEach((t, si) => {
+      if (pi < S.cur.p || (pi === S.cur.p && si < (S.cur.s || 0))) idx++;
+      total++;
+    });
+  });
+  const pos = Math.min(total, idx + 1);
+  slider.max = total;
+  slider.value = pos;
+  $("#paraPos").textContent = `本章 ${pos}/${total} 句`;
+  $("#paraMode").textContent = { builtin: "内置离线", volcano: "豆包", online: "在线", system: "系统" }[S.mode] || "";
 }
 
 audio.addEventListener("timeupdate", () => {
@@ -1342,11 +1534,14 @@ async function getAudio(ch, p) {
 }
 
 /* ---------------- 音色链路选择 ----------------
-   显式选择优先；不可用时按 内置离线 → 电脑在线 → 系统TTS 自动降级 */
+   显式选择优先；不可用时按 内置离线 → 豆包(已配置) → 电脑在线 → 系统TTS 自动降级 */
+const volcanoConfigured = () => !!(prefs.volcanoAppId && prefs.volcanoToken);
+
 async function resolveVoiceMode() {
   let m = prefs.voiceMode;
   if (m === "builtin" && !androidTts()) m = "";
   if (m === "system" && !nativeTTS()) m = "";
+  if (m === "volcano" && !volcanoConfigured()) m = "";
   if (m === "online" && LOCAL_MODE) {
     await checkServer();
     if (!serverAlive) m = "";
@@ -1361,6 +1556,7 @@ async function resolveVoiceMode() {
       if (await waitBuiltinReady(8000)) return "builtin";
     }
   }
+  if (volcanoConfigured()) return "volcano";
   if (!LOCAL_MODE) return "online";
   await checkServer();
   if (serverAlive) return "online";
@@ -1392,8 +1588,9 @@ async function playFrom(ch, p, s = 0) {
     return sentenceChain(ch, p, s, token, speakSeg, failTip);
   }
   haltBuiltin(); haltSystem(); // 切到在线链路：停掉离线朗读
+  const getUrl = mode === "volcano" ? getVolcanoAudio : getAudio;
   try {
-    const url = await getAudio(ch, p);
+    const url = await getUrl(ch, p);
     if (token !== S.playToken) return;
     audio.src = url;
     await audio.play();
@@ -1419,12 +1616,14 @@ async function playFrom(ch, p, s = 0) {
       if (!S.onlineFallbackDone && (androidTts() || nativeTTS())) {
         S.onlineFallbackDone = true;
         serverCheckedAt = 0; // 强制重探服务器，让自动选择避开在线
-        if (prefs.voiceMode === "online") prefs.voiceMode = "";
+        if (prefs.voiceMode === "online" || prefs.voiceMode === "volcano") prefs.voiceMode = "";
         toast("在线语音不可用，已自动切换离线语音");
         return playFrom(S.cur.ch, S.cur.p, S.cur.s || 0);
       }
       stopPlay();
-      showBookError("电脑语音合成连续失败。请确认：家里电脑已开机并运行听书服务、手机与电脑连同一网络；或在「音色」里改用内置离线音色（无需网络）。");
+      showBookError(mode === "volcano"
+        ? "豆包音色（火山引擎）连续合成失败。请检查：AppID/Token 是否填写正确、账户是否有免费额度、网络是否可用。"
+        : "在线语音合成连续失败。请确认：家里电脑已开机并运行听书服务、手机与电脑连同一网络；或在「音色」里改用内置离线音色（无需网络）。");
       return;
     }
     toast("合成失败，2 秒后跳到下一段");
@@ -1452,6 +1651,15 @@ async function speakSystemSeg(text) {
   }
 }
 
+/* 计算下一句文本（供原生层预合成：播当前句时后台生成下一句，消除句间停顿） */
+function nextSentenceText(ch, p, s) {
+  const segs = S.chapter && ch === S.cur.ch ? S.chapter.segs[p] : null;
+  if (segs && s + 1 < segs.length) return segs[s + 1];
+  if (S.chapter && ch === S.cur.ch && p + 1 < S.chapter.paras.length) return S.chapter.segs[p + 1]?.[0] || "";
+  const nxt = S.chapterCache.get(ch + 1);
+  return nxt ? (nxt.paras[0] ? splitSegs(nxt.paras[0])[0] : "") : "";
+}
+
 /* 离线链路（内置语音/系统TTS 共用）：按句朗读，句子短，暂停/关闭立即生效。
    连续失败 3 次停止并给出原因——绝不无限跳句 */
 async function sentenceChain(ch, p, s, token, speakSeg, failTip) {
@@ -1469,6 +1677,11 @@ async function sentenceChain(ch, p, s, token, speakSeg, failTip) {
     if (!text) { s++; continue; }
     S.cur = { ch, p, s };
     highlightSeg(p, s);
+    // 内置语音：把下一句丢给原生层预合成（在播当前句的间隙完成，句间零等待）
+    if (S.mode === "builtin") {
+      const nx = nextSentenceText(ch, p, s);
+      if (nx) try { androidTts().prefetch(nx, +prefs.builtinVoice, Math.max(0.5, Math.min(2, prefs.rate / 100))); } catch {}
+    }
     let spoke = false;
     try {
       await speakSeg(text);
@@ -1504,11 +1717,12 @@ async function sentenceChain(ch, p, s, token, speakSeg, failTip) {
 
 function prefetchAround(ch, p, token) {
   (async () => {
+    const getUrl = S.mode === "volcano" ? getVolcanoAudio : getAudio;
     const tasks = [];
-    if (p + 1 < (S.chapter?.paras.length || 0)) tasks.push(getAudio(ch, p + 1));
-    if (p + 2 < (S.chapter?.paras.length || 0)) tasks.push(getAudio(ch, p + 2));
+    if (p + 1 < (S.chapter?.paras.length || 0)) tasks.push(getUrl(ch, p + 1));
+    if (p + 2 < (S.chapter?.paras.length || 0)) tasks.push(getUrl(ch, p + 2));
     if (p + 2 >= (S.chapter?.paras.length || 0) && ch + 1 < S.book.chapters.length) {
-      await getAudio(ch + 1, 0).catch(() => {});
+      await getUrl(ch + 1, 0).catch(() => {});
     }
     await Promise.allSettled(tasks);
   })();
@@ -1709,6 +1923,7 @@ function syncSystemBars() {
 let lastBackAt = 0;
 window.__szBack = () => {
   if (!$("#storeSheet").classList.contains("hidden")) { closeStore(); return true; }
+  if (!$("#volcanoSheet").classList.contains("hidden")) { closeVolcanoSheet(); return true; }
   if (!$("#voiceSheet").classList.contains("hidden")) { closeVoice(); return true; }
   if (!$("#rateSheet").classList.contains("hidden")) { closeRateSheet(); return true; }
   if (!$("#timerSheet").classList.contains("hidden")) { closeTimerSheet(); return true; }
