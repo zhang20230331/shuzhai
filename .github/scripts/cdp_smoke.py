@@ -122,7 +122,8 @@ for _ in range(120):
         continue
     # CI 双核且双引擎抢 CPU：完整口径（cacheHits>10 + rtfPrefetchAvg>1.5）需真机稳态，
     # CI 层面验证 rtfPrefetch 数据源真实运行（引擎 2 工作 + 统计积累）即可
-    if dj.get("rtfPrefetchCount", 0) >= 1 and dj.get("rtfPrefetchAvg", 0) > 1.0:
+    # rtfPrefetchAvg 首次积累前是 JSON null → Python None，必须 or 0 兜底
+    if (dj.get("rtfPrefetchCount") or 0) >= 1 and (dj.get("rtfPrefetchAvg") or 0) > 1.0:
         pf_ok = True
         pf_diag = dj
         break

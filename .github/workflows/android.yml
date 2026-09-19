@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["public/**", "android/**", "scripts/**", ".github/workflows/android.yml"]
+    paths: [".github/**", "public/**", "android/**", "scripts/**"]
 
 jobs:
   build:
