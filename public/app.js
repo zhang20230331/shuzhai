@@ -1687,6 +1687,15 @@ async function sentenceChain(ch, p, s, token, speakSeg, failTip) {
     if (!text) { s++; continue; }
     S.cur = { ch, p, s };
     highlightSeg(p, s);
+    // 本机合成持续偏慢：切换到可流畅播放的链路。覆盖所有用户（含手动选内置的）——
+    // 用户选的是音色，不是卡顿；知情确认后（builtinForce）才保留内置。
+    // 放在每句开始前检查：不必等一句放完才发现该降级（慢机上 synthesis 可长达数十秒）
+    if (S.mode === "builtin" && !prefs.slowBuiltin && !prefs.builtinForce
+        && (window.__szForceSlow === true || androidTts()?.isSlowSynth?.() === true)) {
+      prefs.slowBuiltin = true;
+      toast("本机合成速度跟不上播放，已改用系统语音保证连贯。想继续用内置音色：音色面板 → 内置 → 「仍要使用」；想要流畅高音质可接入豆包音色", 6000, openVoiceSheet);
+      return playFrom(S.cur.ch, S.cur.p, S.cur.s);
+    }
     // 内置语音：把后面 4 句丢给独立预合成引擎（与播放完全并行，句间零等待）
     if (S.mode === "builtin" && S.flat) {
       const idx = flatIndexOf(p, s);
@@ -1708,14 +1717,6 @@ async function sentenceChain(ch, p, s, token, speakSeg, failTip) {
     } catch (e) {
       if (e && e.stopped) return; // 被 stop()/pause() 打断：安静退出
       lastErr = (e && e.message) || String(e);
-    }
-    // 本机合成持续偏慢：切换到可流畅播放的链路。覆盖所有用户（含手动选内置的）——
-    // 用户选的是音色，不是卡顿；知情确认后（builtinForce）才保留内置
-    if (S.mode === "builtin" && !prefs.slowBuiltin && !prefs.builtinForce
-        && (window.__szForceSlow === true || androidTts()?.isSlowSynth?.() === true)) {
-      prefs.slowBuiltin = true;
-      toast("本机合成速度跟不上播放，已改用系统语音保证连贯。想继续用内置音色：音色面板 → 内置 → 「仍要使用」；想要流畅高音质可接入豆包音色", 6000, openVoiceSheet);
-      return playFrom(S.cur.ch, S.cur.p, S.cur.s);
     }
     if (token !== S.playToken) return;
     if (!spoke) {
